@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de Ofertas para Afiliados</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --border:#2a2f3a;
+    --text:#eef0f3; --muted:#9aa3b2; --accent:#ff6a00; --accent2:#ffb020;
+    --green:#22c55e; --blue:#3b82f6; --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(160deg,#0f1115,#14171f); color:var(--text); padding:24px;
+  }
+  .wrap{max-width:760px; margin:0 auto;}
+  h1{font-size:22px; margin:0 0 4px;}
+  .subtitle{color:var(--muted); font-size:14px; margin-bottom:24px;}
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:20px; margin-bottom:16px;
+  }
+  .step-header{display:flex; align-items:center; gap:10px; margin-bottom:14px;}
+  .step-num{
+    width:26px; height:26px; border-radius:50%; background:var(--accent); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0;
+  }
+  .step-title{font-size:15px; font-weight:600;}
+  label{display:block; font-size:12.5px; color:var(--muted); margin:10px 0 4px;}
+  textarea, input[type=text]{
+    width:100%; background:var(--panel2); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); padding:10px 12px; font-size:13.5px; font-family:inherit; resize:vertical;
+  }
+  textarea:focus, input:focus{outline:none; border-color:var(--accent);}
+  textarea{min-height:110px;}
+  .row{display:flex; gap:10px; flex-wrap:wrap;}
+  .row > div{flex:1; min-width:140px;}
+  button{
+    background:var(--accent); color:#fff; border:none; border-radius:8px; padding:10px 16px;
+    font-size:13.5px; font-weight:600; cursor:pointer; margin-top:12px;
+  }
+  button:hover{filter:brightness(1.08);}
+  button.secondary{background:var(--panel2); border:1px solid var(--border); color:var(--text);}
+  button.small{padding:6px 10px; font-size:12px; margin-top:0;}
+  button:disabled{opacity:.45; cursor:not-allowed;}
+  .btn-row{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .pill{
+    display:inline-block; padding:3px 10px; border-radius:999px; font-size:11.5px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.02em;
+  }
+  .pill.ml{background:#fff16022; color:#ffe066; border:1px solid #ffe06655;}
+  .pill.shopee{background:#ee4d2d22; color:#ff8a65; border:1px solid #ee4d2d55;}
+  .pill.outro{background:#3b82f622; color:#93c5fd; border:1px solid #3b82f655;}
+  .muted{color:var(--muted); font-size:12.5px;}
+  .hidden{display:none !important;}
+  .link-box{
+    background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:10px 12px;
+    font-size:12.5px; word-break:break-all; color:#93c5fd; margin-top:6px;
+  }
+  .final-box{
+    background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:14px;
+    white-space:pre-wrap; font-size:14px; line-height:1.55; margin-top:10px;
+  }
+  .copied-msg{color:var(--green); font-size:12.5px; margin-left:8px; opacity:0; transition:opacity .2s;}
+  .copied-msg.show{opacity:1;}
+  .note{
+    background:#3b82f615; border:1px solid #3b82f640; border-radius:8px; padding:10px 12px;
+    font-size:12.5px; color:#9db8e8; margin-top:10px;
+  }
+  .discount-tag{
+    display:inline-block; background:var(--green); color:#062b13; font-weight:800; font-size:12px;
+    padding:2px 8px; border-radius:6px; margin-left:6px;
+  }
+
+  @media (max-width: 600px){
+    body{ padding:12px; }
+    h1{ font-size:19px; }
+    .subtitle{ font-size:13px; margin-bottom:16px; }
+    .card{ padding:14px; border-radius:10px; }
+    textarea, input[type=text]{ font-size:16px; padding:11px 12px; }
+    button{ width:100%; padding:12px 16px; font-size:14px; }
+    button.small{ width:auto; flex:1; min-width:120px; }
+    .btn-row{ flex-direction:column; align-items:stretch; }
+    .btn-row button.small{ width:100%; }
+    .copied-msg{ margin-left:0; margin-top:4px; text-align:center; }
+    .row{ flex-direction:column; }
+    .row > div{ min-width:0; }
+    .final-box{ font-size:13.5px; padding:12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🛒 Gerador de Ofertas para Afiliados</h1>
+  <div class="subtitle">Cole a oferta do grupo → identifique o link e a plataforma → gere o link de afiliado no portal oficial → receba a mensagem pronta para reenviar.</div>
+
+  <!-- STEP 1 -->
+  <div class="card">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div class="step-title">Cole a oferta que você recebeu</div>
+    </div>
+    <textarea id="rawOffer" placeholder="Cole aqui o texto da oferta copiado do grupo do WhatsApp..."></textarea>
+    <button onclick="analyzeOffer()">Analisar oferta</button>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="card hidden" id="step2">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div class="step-title">Conferir o que foi identificado</div>
+    </div>
+
+    <label>Plataforma detectada</label>
+    <div id="platformPill"></div>
+
+    <label>Link do produto encontrado</label>
+    <div class="link-box" id="detectedLink">—</div>
+    <div class="btn-row" style="margin-top:8px;">
+      <button class="secondary small" onclick="copyText('detectedLink', this)">Copiar link do produto</button>
+      <button class="small" id="openPortalBtn" onclick="openPortal()">Abrir portal de afiliados ↗</button>
+      <span class="copied-msg" id="copiedLink">Copiado!</span>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Preço original (De R$)</label>
+        <input type="text" id="priceOriginal" placeholder="Ex: 199,90">
+      </div>
+      <div>
+        <label>Preço com desconto (Por R$)</label>
+        <input type="text" id="priceFinal" placeholder="Ex: 129,90">
+      </div>
+      <div>
+        <label>Cupom (opcional)</label>
+        <input type="text" id="coupon" placeholder="Ex: DESCONTO10">
+      </div>
+    </div>
+    <div class="muted" style="margin-top:8px;">Desconto calculado: <span id="discountCalc">—</span></div>
+
+    <div class="note hidden" id="installmentNote" style="background:#ffb02015; border-color:#ffb02040; color:#ffd28a;"></div>
+
+    <div class="note">
+      Mercado Livre e Shopee só geram o link de afiliado oficial dentro do portal deles (é preciso estar logado na sua conta de afiliado). Clique em "Abrir portal de afiliados", cole o link do produto lá, gere o link e cole o resultado no passo 3 abaixo.
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="card hidden" id="step3">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div class="step-title">Cole aqui o link de afiliado gerado no portal</div>
+    </div>
+    <input type="text" id="affiliateLink" placeholder="Cole o link de afiliado (ex: mercadolivre.com/sec/... ou s.shopee.com.br/...)">
+
+    <label>Chamada de atenção (CTA) — vai aparecer em negrito e MAIÚSCULO no topo da mensagem</label>
+    <input type="text" id="ctaText" value="Aproveite antes que acabe">
+
+    <button onclick="buildMessage()">Gerar mensagem final</button>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="card hidden" id="step4">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      <div class="step-title">Mensagem pronta para o grupo</div>
+    </div>
+    <div class="final-box" id="finalMessage"></div>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="small" onclick="copyText('finalMessage', this)">Copiar mensagem</button>
+      <span class="copied-msg" id="copiedFinal">Copiado! Agora é só colar no grupo.</span>
+    </div>
+  </div>
+
+<script>
+let detectedPlatform = 'outro';
+let detectedLinkUrl = '';
+
+const PORTALS = {
+  ml: 'https://www.mercadolivre.com.br/l/afiliados-home',
+  shopee: 'https://affiliate.shopee.com.br/'
+};
+
+function extractUrls(text){
+  const matches = text.match(/https?:\/\/[^\s)>\]]+/g) || [];
+  return matches.map(u => u.replace(/[.,;!?]+$/,''));
+}
+
+function detectPlatform(url){
+  const u = url.toLowerCase();
+  if(u.includes('mercadolivre.com') || u.includes('mercadolibre.com') || u.includes('meli.com') || u.includes('mercadoli.re')) return 'ml';
+  if(u.includes('shopee.com.br') || u.includes('shope.ee') || u.includes('s.shopee')) return 'shopee';
+  return 'outro';
+}
+
+function extractPrices(text){
+  const re = /R\$\s?(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/g;
+  const found = [];
+  let m;
+  while((m = re.exec(text)) !== null){ found.push(m[1]); }
+  return found;
+}
+
+function extractInstallments(text){
+  const results = [];
+  const reForward = /(\d{1,2})\s*(?:x|vezes)\s*(?:sem\s+juros\s*)?(?:de\s*)?R\$\s?(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/gi;
+  let m;
+  while((m = reForward.exec(text)) !== null){
+    results.push({full: m[0], n: parseInt(m[1], 10), value: m[2]});
+  }
+  const reReverse = /R\$\s?(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)\s*(?:em\s*)?(\d{1,2})\s*x\b(?!\s*(?:de\s*)?R\$)/gi;
+  while((m = reReverse.exec(text)) !== null){
+    const already = results.some(r => r.full.includes(m[0]) || m[0].includes(r.full));
+    if(!already){
+      results.push({full: m[0], n: parseInt(m[2], 10), value: m[1]});
+    }
+  }
+  return results;
+}
+
+function stripInstallments(text, installments){
+  let clean = text;
+  installments.forEach(i => { clean = clean.split(i.full).join(' '); });
+  return clean;
+}
+
+function toNumber(brStr){
+  if(!brStr) return NaN;
+  return parseFloat(brStr.replace(/\./g,'').replace(',', '.'));
+}
+
+function analyzeOffer(){
+  const text = document.getElementById('rawOffer').value.trim();
+  if(!text){ alert('Cole o texto da oferta primeiro.'); return; }
+
+  const urls = extractUrls(text);
+  detectedLinkUrl = urls[0] || '';
+  detectedPlatform = detectedLinkUrl ? detectPlatform(detectedLinkUrl) : 'outro';
+
+  const installments = extractInstallments(text);
+  const cleanedText = stripInstallments(text, installments);
+
+  const pillEl = document.getElementById('platformPill');
+  const labels = {ml: ['Mercado Livre', 'ml'], shopee: ['Shopee', 'shopee'], outro: ['Plataforma não reconhecida', 'outro']};
+  const [label, cls] = labels[detectedPlatform];
+  pillEl.innerHTML = `<span class="pill ${cls}">${label}</span>`;
+
+  document.getElementById('detectedLink').textContent = detectedLinkUrl || 'Nenhum link encontrado — cole manualmente no passo 3.';
+
+  const openBtn = document.getElementById('openPortalBtn');
+  openBtn.disabled = detectedPlatform === 'outro';
+  openBtn.textContent = detectedPlatform === 'ml' ? 'Abrir portal de afiliados (Mercado Livre) ↗'
+                        : detectedPlatform === 'shopee' ? 'Abrir portal de afiliados (Shopee) ↗'
+                        : 'Portal não disponível para este link';
+
+  const prices = extractPrices(cleanedText).map(toNumber).filter(n => !isNaN(n));
+  let original = '', final = '';
+  if(prices.length >= 2){
+    original = Math.max(...prices).toFixed(2).replace('.', ',');
+    final = Math.min(...prices).toFixed(2).replace('.', ',');
+  } else if(prices.length === 1){
+    final = prices[0].toFixed(2).replace('.', ',');
+  }
+  document.getElementById('priceOriginal').value = original;
+  document.getElementById('priceFinal').value = final;
+
+  const couponMatch = text.match(/cupom[:\s]*([A-Z0-9]{3,15})/i);
+  document.getElementById('coupon').value = couponMatch ? couponMatch[1].toUpperCase() : '';
+
+  const instNoteEl = document.getElementById('installmentNote');
+  if(installments.length){
+    const i = installments[0];
+    const total = (i.n * toNumber(i.value)).toFixed(2).replace('.', ',');
+    instNoteEl.innerHTML = `💳 Parcelamento detectado: <strong>${i.n}x de R$ ${i.value}</strong> (≈ R$ ${total} no total). Esse valor da parcela NÃO foi usado como preço final — confira/preencha o valor à vista acima antes de gerar a mensagem.`;
+    instNoteEl.classList.remove('hidden');
+  } else {
+    instNoteEl.classList.add('hidden');
+    instNoteEl.innerHTML = '';
+  }
+
+  updateDiscount();
+  document.getElementById('priceOriginal').oninput = updateDiscount;
+  document.getElementById('priceFinal').oninput = updateDiscount;
+
+  document.getElementById('step2').classList.remove('hidden');
+  document.getElementById('step3').classList.remove('hidden');
+  document.getElementById('step2').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function updateDiscount(){
+  const o = toNumber(document.getElementById('priceOriginal').value);
+  const f = toNumber(document.getElementById('priceFinal').value);
+  const el = document.getElementById('discountCalc');
+  if(!isNaN(o) && !isNaN(f) && o > 0 && f < o){
+    const pct = Math.round((1 - f/o) * 100);
+    el.innerHTML = `${pct}% OFF <span class="discount-tag">-R$ ${(o-f).toFixed(2).replace('.', ',')}</span>`;
+  } else {
+    el.textContent = '—';
+  }
+}
+
+function openPortal(){
+  if(PORTALS[detectedPlatform]) window.open(PORTALS[detectedPlatform], '_blank');
+}
+
+function buildMessage(){
+  const original = document.getElementById('priceOriginal').value.trim();
+  const final = document.getElementById('priceFinal').value.trim();
+  const coupon = document.getElementById('coupon').value.trim();
+  let link = document.getElementById('affiliateLink').value.trim() || detectedLinkUrl;
+  const ctaRaw = document.getElementById('ctaText').value.trim() || 'Aproveite antes que acabe';
+
+  if(!link){ alert('Cole o link de afiliado (ou o link do produto) antes de gerar a mensagem.'); return; }
+
+  const o = toNumber(original), f = toNumber(final);
+
+  let priceBlock = '';
+  const SEP = '━━━━━━━━━━━━━';
+  if(!isNaN(o) && !isNaN(f) && o > f){
+    const pct = Math.round((1 - f/o) * 100);
+    priceBlock = `${SEP}\n💰 De ~R$ ${original}~\n✅ Por *R$ ${final}*\n🔻 *${pct}% OFF*\n${SEP}`;
+  } else if(!isNaN(f)){
+    priceBlock = `${SEP}\n✅ Por apenas *R$ ${final}*\n${SEP}`;
+  }
+
+  const ctaLine = `⚡ *${ctaRaw.toUpperCase()}* ⚡`;
+
+  const parts = [ctaLine];
+  if(priceBlock) parts.push(priceBlock);
+  const infoLines = [];
+  if(coupon) infoLines.push(`🏷️ Cupom: *${coupon}*`);
+  infoLines.push(`👉 ${link}`);
+  parts.push(infoLines.join('\n'));
+
+  const msg = parts
