@@ -96,7 +96,50 @@
     .row{ flex-direction:column; }
     .row > div{ min-width:0; }
     .final-box{ font-size:13.5px; padding:12px; }
+    .hist-entry-body{ flex-direction:column; }
+    .hist-img{ width:100%; height:150px; }
+    .tabs{ gap:0; }
+    .tab-btn{ flex:1; text-align:center; margin-right:0; font-size:13px; padding:10px 2px; }
+    .hist-toolbar{ flex-direction:column; align-items:stretch; }
   }
+
+  .tabs{display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid var(--border);}
+  .tab-btn{
+    background:none; border:none; color:var(--muted); padding:10px 4px; margin:0 16px 0 0;
+    font-size:14px; font-weight:700; text-transform:none; letter-spacing:0; cursor:pointer;
+    border-bottom:2px solid transparent; border-radius:0;
+  }
+  .tab-btn:hover{ background:none; color:var(--text); }
+  .tab-btn.active{ color:var(--text); border-bottom-color:var(--accent); }
+  .tab-badge{
+    display:inline-block; background:var(--panel2); color:var(--muted); font-size:11px; font-weight:700;
+    padding:1px 7px; border-radius:999px; margin-left:4px;
+  }
+  .tab-btn.active .tab-badge{ background:var(--accent); color:#fff; }
+
+  .img-drop{
+    border:1.5px dashed var(--border); border-radius:10px; padding:16px; text-align:center;
+    cursor:pointer; margin-top:6px; position:relative; min-height:56px;
+    display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px;
+  }
+  .img-drop.drag{ border-color:var(--accent); background:#f2030310; }
+  .img-drop-link{ color:var(--accent); text-decoration:underline; cursor:pointer; }
+  .img-drop img{ max-width:160px; max-height:160px; border-radius:8px; object-fit:contain; }
+
+  .hist-toolbar{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+  .hist-date-group{ margin-bottom:24px; }
+  .hist-date-header{ font-size:13.5px; font-weight:700; color:var(--muted); margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border); text-transform:capitalize; }
+  .hist-entry{ margin-bottom:12px; }
+  .hist-entry-top{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .hist-entry-top .hist-del{ margin-left:auto; background:transparent; border:1px solid var(--border); color:var(--muted); padding:4px 9px; margin-top:0; }
+  .hist-entry-top .hist-del:hover{ border-color:var(--accent); color:var(--accent); background:transparent; }
+  .hist-entry-body{ display:flex; gap:12px; align-items:flex-start; }
+  .hist-img{ width:84px; height:84px; border-radius:8px; object-fit:cover; flex-shrink:0; background:var(--panel2); }
+  .hist-img-placeholder{ display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--muted); text-align:center; border:1px dashed var(--border); padding:4px; }
+  .hist-entry-text{ flex:1; min-width:0; }
+  .hist-entry-text .final-box{ margin-top:0; font-size:12.5px; padding:10px; max-height:150px; overflow-y:auto; }
+  .hist-entry-text .link-box{ font-size:11.5px; }
+  .hist-empty{ padding:30px 10px; text-align:center; color:var(--muted); font-size:13.5px; }
 </style>
 </head>
 <body>
@@ -109,6 +152,12 @@
   </div>
   <div class="subtitle">Cole a oferta do grupo → identifique o link e a plataforma → gere o link de afiliado no portal oficial → receba a mensagem pronta para reenviar.</div>
 
+  <div class="tabs">
+    <button class="tab-btn active" id="tabGerador" onclick="switchTab('gerador')">Gerador</button>
+    <button class="tab-btn" id="tabHistorico" onclick="switchTab('historico')">Histórico <span class="tab-badge" id="histBadge">0</span></button>
+  </div>
+
+  <div id="view-gerador">
   <!-- STEP 1 -->
   <div class="card">
     <div class="step-header">
@@ -117,6 +166,14 @@
     </div>
     <textarea id="rawOffer" placeholder="Cole aqui o texto da oferta copiado do grupo do WhatsApp..."></textarea>
     <button onclick="analyzeOffer()">Analisar oferta</button>
+
+    <label>Imagem do produto (opcional) — vai aparecer no histórico</label>
+    <div class="img-drop" id="imgDrop" tabindex="0">
+      <div id="imgDropEmpty">📋 Cole a imagem aqui (Ctrl+V) ou <span class="img-drop-link" onclick="document.getElementById('imgFileInput').click()">selecione um arquivo</span></div>
+      <img id="imgPreview" class="hidden" alt="Imagem do produto">
+      <button type="button" class="small secondary hidden" id="imgRemoveBtn" onclick="removeImage(event)">Remover</button>
+    </div>
+    <input type="file" id="imgFileInput" accept="image/*" class="hidden" onchange="handleImageFile(this.files[0])">
   </div>
 
   <!-- STEP 2 -->
@@ -186,15 +243,232 @@
       <span class="copied-msg" id="copiedFinal">Copiado! Agora é só colar no grupo.</span>
     </div>
   </div>
+  </div>
+
+  <!-- HISTÓRICO -->
+  <div id="view-historico" class="hidden">
+    <div class="hist-toolbar">
+      <div class="muted" id="histCount">0 publicações salvas</div>
+      <div class="btn-row" style="margin-top:0;">
+        <button class="small secondary" onclick="exportHistory()">⬇ Exportar backup</button>
+        <button class="small secondary" onclick="document.getElementById('importFileInput').click()">⬆ Importar backup</button>
+        <input type="file" id="importFileInput" accept="application/json" class="hidden" onchange="importHistory(this.files[0])">
+      </div>
+    </div>
+    <div class="note">O histórico é salvo neste navegador/aparelho. Para levar as publicações para outro dispositivo (PC ↔ celular), use "Exportar backup" aqui e "Importar backup" no outro aparelho.</div>
+    <div id="histList"></div>
+  </div>
 
 <script>
 let detectedPlatform = 'outro';
 let detectedLinkUrl = '';
+let capturedImageDataUrl = null;
+let currentEntryData = null;
+let currentEntrySaved = false;
 
 const PORTALS = {
   ml: 'https://www.mercadolivre.com.br/l/afiliados-home',
   shopee: 'https://affiliate.shopee.com.br/'
 };
+
+const HISTORY_KEY = 'relikia_historico_v1';
+
+/* ---------- Abas ---------- */
+function switchTab(view){
+  document.getElementById('view-gerador').classList.toggle('hidden', view !== 'gerador');
+  document.getElementById('view-historico').classList.toggle('hidden', view !== 'historico');
+  document.getElementById('tabGerador').classList.toggle('active', view === 'gerador');
+  document.getElementById('tabHistorico').classList.toggle('active', view === 'historico');
+  if(view === 'historico') renderHistory();
+}
+
+/* ---------- Captura de imagem ---------- */
+function handleImageFile(file){
+  if(!file || !file.type || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxDim = 480;
+      let w = img.width, h = img.height;
+      if(w > maxDim || h > maxDim){
+        if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; }
+        else{ w = Math.round(w * maxDim / h); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      capturedImageDataUrl = canvas.toDataURL('image/jpeg', 0.72);
+      showImagePreview(capturedImageDataUrl);
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function showImagePreview(dataUrl){
+  document.getElementById('imgDropEmpty').classList.add('hidden');
+  const previewEl = document.getElementById('imgPreview');
+  previewEl.src = dataUrl;
+  previewEl.classList.remove('hidden');
+  document.getElementById('imgRemoveBtn').classList.remove('hidden');
+}
+
+function removeImage(ev){
+  if(ev) ev.stopPropagation();
+  capturedImageDataUrl = null;
+  document.getElementById('imgDropEmpty').classList.remove('hidden');
+  const previewEl = document.getElementById('imgPreview');
+  previewEl.src = '';
+  previewEl.classList.add('hidden');
+  document.getElementById('imgRemoveBtn').classList.add('hidden');
+  document.getElementById('imgFileInput').value = '';
+}
+
+/* ---------- Histórico ---------- */
+function loadHistory(){
+  try{ return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+  catch(e){ return []; }
+}
+
+function persistHistory(list){
+  try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); }
+  catch(e){ alert('Não foi possível salvar no histórico (armazenamento do navegador cheio). Exporte um backup e remova publicações antigas.'); }
+}
+
+function saveToHistory(entry){
+  const list = loadHistory();
+  list.unshift(entry);
+  persistHistory(list);
+  updateHistBadge();
+}
+
+function updateHistBadge(){
+  const badge = document.getElementById('histBadge');
+  if(badge) badge.textContent = loadHistory().length;
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+function renderHistory(){
+  const list = loadHistory();
+  document.getElementById('histCount').textContent = list.length + (list.length === 1 ? ' publicação salva' : ' publicações salvas');
+  updateHistBadge();
+
+  const listEl = document.getElementById('histList');
+  if(!list.length){
+    listEl.innerHTML = '<div class="hist-empty">Nenhuma publicação salva ainda.<br>Gere e copie uma mensagem no Gerador para começar seu histórico.</div>';
+    return;
+  }
+
+  const groups = {};
+  const order = [];
+  list.forEach(entry => {
+    const key = new Date(entry.ts).toLocaleDateString('pt-BR');
+    if(!groups[key]){ groups[key] = []; order.push(key); }
+    groups[key].push(entry);
+  });
+
+  listEl.innerHTML = order.map(key => {
+    const entries = groups[key];
+    let label = new Date(entries[0].ts).toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    label = label.charAt(0).toUpperCase() + label.slice(1);
+    const entriesHtml = entries.map(renderHistEntry).join('');
+    return `<div class="hist-date-group">
+      <div class="hist-date-header">${label} · ${entries.length} ${entries.length === 1 ? 'publicação' : 'publicações'}</div>
+      ${entriesHtml}
+    </div>`;
+  }).join('');
+}
+
+function renderHistEntry(e){
+  const labels = {ml: ['Mercado Livre', 'ml'], shopee: ['Shopee', 'shopee'], outro: ['Outro', 'outro']};
+  const [label, cls] = labels[e.platform] || labels.outro;
+  const time = new Date(e.ts).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  const imgHtml = e.image
+    ? `<img class="hist-img" src="${e.image}" alt="Imagem do produto">`
+    : `<div class="hist-img hist-img-placeholder">Sem imagem</div>`;
+  const priceLine = (e.original && e.final)
+    ? `<div class="muted">De R$ ${escapeHtml(e.original)} → Por R$ ${escapeHtml(e.final)}${e.pct ? ' · ' + e.pct + '% OFF' : ''}</div>`
+    : (e.final ? `<div class="muted">Por R$ ${escapeHtml(e.final)}</div>` : '');
+  return `<div class="card hist-entry">
+    <div class="hist-entry-top">
+      <span class="pill ${cls}">${label}</span>
+      <span class="muted">${time}</span>
+      <button class="small hist-del" onclick="deleteHistoryEntry('${e.id}')" title="Excluir">🗑 Excluir</button>
+    </div>
+    <div class="hist-entry-body">
+      ${imgHtml}
+      <div class="hist-entry-text">
+        ${priceLine}
+        <div class="final-box">${escapeHtml(e.message)}</div>
+        <div class="link-box">${escapeHtml(e.link)}</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="small secondary" onclick="copyHistField('${e.id}','message', this)">Copiar mensagem</button>
+      <button class="small secondary" onclick="copyHistField('${e.id}','link', this)">Copiar link</button>
+      <span class="copied-msg">Copiado!</span>
+    </div>
+  </div>`;
+}
+
+function copyHistField(id, field, btn){
+  const entry = loadHistory().find(x => x.id === id);
+  if(!entry) return;
+  navigator.clipboard.writeText(entry[field] || '').then(() => {
+    const flash = btn.nextElementSibling;
+    if(flash && flash.classList.contains('copied-msg')){
+      flash.classList.add('show');
+      setTimeout(() => flash.classList.remove('show'), 1800);
+    }
+  });
+}
+
+function deleteHistoryEntry(id){
+  if(!confirm('Excluir esta publicação do histórico?')) return;
+  persistHistory(loadHistory().filter(x => x.id !== id));
+  renderHistory();
+}
+
+function exportHistory(){
+  const list = loadHistory();
+  const blob = new Blob([JSON.stringify(list, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `historico-relikia-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importHistory(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const imported = JSON.parse(reader.result);
+      if(!Array.isArray(imported)) throw new Error('formato inválido');
+      const current = loadHistory();
+      const ids = new Set(current.map(x => x.id));
+      const merged = current.concat(imported.filter(x => x && x.id && !ids.has(x.id)));
+      merged.sort((a, b) => b.ts - a.ts);
+      persistHistory(merged);
+      renderHistory();
+      alert('Histórico importado com sucesso!');
+    }catch(e){
+      alert('Arquivo inválido. Selecione um backup exportado por esta ferramenta.');
+    }
+  };
+  reader.readAsText(file);
+  document.getElementById('importFileInput').value = '';
+}
 
 function extractUrls(text){
   const matches = text.match(/https?:\/\/[^\s)>\]]+/g) || [];
@@ -352,6 +626,21 @@ function buildMessage(){
   document.getElementById('finalMessage').textContent = msg;
   document.getElementById('step4').classList.remove('hidden');
   document.getElementById('step4').scrollIntoView({behavior:'smooth', block:'start'});
+
+  currentEntryData = {
+    id: 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+    ts: Date.now(),
+    platform: detectedPlatform,
+    original: original || null,
+    final: final || null,
+    pct: (!isNaN(o) && !isNaN(f) && o > f) ? Math.round((1 - f / o) * 100) : null,
+    coupon: coupon || null,
+    link: link,
+    cta: ctaRaw,
+    message: msg,
+    image: capturedImageDataUrl || null
+  };
+  currentEntrySaved = false;
 }
 
 function copyText(elId, btn){
@@ -363,8 +652,38 @@ function copyText(elId, btn){
       flash.classList.add('show');
       setTimeout(() => flash.classList.remove('show'), 1800);
     }
+    if(elId === 'finalMessage' && currentEntryData && !currentEntrySaved){
+      saveToHistory(currentEntryData);
+      currentEntrySaved = true;
+      removeImage();
+    }
   });
 }
+
+/* ---------- Eventos de colar/soltar imagem ---------- */
+(function initImageDrop(){
+  const zone = document.getElementById('imgDrop');
+  if(!zone) return;
+  zone.addEventListener('paste', (e) => {
+    const items = (e.clipboardData || window.clipboardData).items;
+    for(const item of items){
+      if(item.kind === 'file' && item.type.startsWith('image/')){
+        handleImageFile(item.getAsFile());
+        e.preventDefault();
+        break;
+      }
+    }
+  });
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag');
+    if(e.dataTransfer.files && e.dataTransfer.files[0]) handleImageFile(e.dataTransfer.files[0]);
+  });
+})();
+
+updateHistBadge();
 </script>
 </body>
 </html>
