@@ -128,7 +128,7 @@
 
   .hist-toolbar{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
   .hist-date-group{ margin-bottom:24px; }
-  .hist-date-header{ font-size:13.5px; font-weight:700; color:var(--muted); margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border); text-transform:capitalize; }
+  .hist-date-header{ font-size:13.5px; font-weight:700; color:var(--muted); margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
   .hist-entry{ margin-bottom:12px; }
   .hist-entry-top{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .hist-entry-top .hist-del{ margin-left:auto; background:transparent; border:1px solid var(--border); color:var(--muted); padding:4px 9px; margin-top:0; }
@@ -165,7 +165,10 @@
       <div class="step-title">Cole a oferta que você recebeu</div>
     </div>
     <textarea id="rawOffer" placeholder="Cole aqui o texto da oferta copiado do grupo do WhatsApp..."></textarea>
-    <button onclick="analyzeOffer()">Analisar oferta</button>
+    <div class="btn-row">
+      <button onclick="analyzeOffer()">Analisar oferta</button>
+      <button type="button" class="secondary" onclick="clearOfferBox()">Limpar</button>
+    </div>
 
     <label>Imagem do produto (opcional) — vai aparecer no histórico</label>
     <div class="img-drop" id="imgDrop" tabindex="0">
@@ -516,6 +519,24 @@ function stripInstallments(text, installments){
 function toNumber(brStr){
   if(!brStr) return NaN;
   return parseFloat(brStr.replace(/\./g,'').replace(',', '.'));
+}
+
+function clearOfferBox(){
+  document.getElementById('rawOffer').value = '';
+  document.getElementById('rawOffer').focus();
+  document.getElementById('step2').classList.add('hidden');
+  document.getElementById('step3').classList.add('hidden');
+  document.getElementById('step4').classList.add('hidden');
+  document.getElementById('affiliateLink').value = '';
+  document.getElementById('ctaText').value = 'Aproveite antes que acabe';
+  document.getElementById('priceOriginal').value = '';
+  document.getElementById('priceFinal').value = '';
+  document.getElementById('coupon').value = '';
+  removeImage();
+  detectedPlatform = 'outro';
+  detectedLinkUrl = '';
+  currentEntryData = null;
+  currentEntrySaved = false;
 }
 
 function analyzeOffer(){
