@@ -81,6 +81,7 @@
   .pill.ml{background:#fff16022; color:#ffe066; border:1px solid #ffe06655;}
   .pill.shopee{background:#ee4d2d22; color:#ff8a65; border:1px solid #ee4d2d55;}
   .pill.outro{background:#f2030322; color:#ff8a8a; border:1px solid #f2030355;}
+  .product-title{font-size:14.5px; font-weight:700; line-height:1.32; color:#fff;}
   .price-row{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;}
   .price-old{color:var(--muted); font-size:13px; text-decoration:line-through;}
   .price-new{color:#fff; font-size:19px; font-weight:800;}
@@ -191,8 +192,9 @@
     }
 
     const couponHtml = p.coupon ? `<div class="coupon-row">🏷️ Cupom: <strong>${escapeHtml(p.coupon)}</strong></div>` : '';
+    const titleHtml = p.title ? `<div class="product-title">${escapeHtml(p.title)}</div>` : '';
     const imgHtml = p.image
-      ? `<img class="product-img" src="${p.image}" alt="">`
+      ? `<img class="product-img" src="${p.image}" alt="${escapeHtml(p.title || '')}">`
       : `<div class="product-img placeholder">Sem imagem</div>`;
     const safeLink = escapeHtml(p.link || '#');
 
@@ -201,6 +203,7 @@
         ${imgHtml}
         <div class="product-info">
           <span class="pill ${platformClass}">${label}</span>
+          ${titleHtml}
           ${priceHtml}
           ${couponHtml}
           <a class="cta-btn" href="${safeLink}" target="_blank" rel="noopener">Ver oferta →</a>
