@@ -659,6 +659,42 @@ function extractPrices(text){
   return found;
 }
 
+function extractPerUnitMentions(text){
+  const priceNum = '\\d{1,3}(?:\\.\\d{3})*(?:,\\d{2})?';
+  const results = [];
+  const add = (match) => {
+    if(!results.some(r => r.includes(match) || match.includes(r))) results.push(match);
+  };
+
+  // Preço dentro de parênteses junto com palavra de unidade: "(R$20,00 à unidade)"
+  const parenRe = new RegExp('\\(([^()]*R\\$\\s?' + priceNum + '[^()]*)\\)', 'gi');
+  let m;
+  while((m = parenRe.exec(text)) !== null){
+    const inner = m[1].toLowerCase();
+    if(/unidade|cada\s+(uma|um|pe[çc]a)|por\s+pe[çc]a|\bun\.?\b|\bund\.?\b/.test(inner)){
+      add(m[0]);
+    }
+  }
+
+  // "R$20,00 a/à/por unidade|peça" ou "R$20,00 cada"
+  const inlineRe = new RegExp('R\\$\\s?' + priceNum + '\\s*(?:a|à|por)?\\s*(?:unidade|pe[çc]a|un\\.?|und\\.?)\\b', 'gi');
+  while((m = inlineRe.exec(text)) !== null){ add(m[0]); }
+  const cadaRe = new RegExp('R\\$\\s?' + priceNum + '\\s*cada\\b', 'gi');
+  while((m = cadaRe.exec(text)) !== null){ add(m[0]); }
+
+  // Ordem invertida: "unidade/cada/peça ... R$20,00"
+  const reverseRe = new RegExp('(?:unidade|cada(?:\\s+um[a]?)?|pe[çc]a)\\s*(?:sai[a-z]*)?\\s*(?:a|à|por)?\\s*R\\$\\s?' + priceNum, 'gi');
+  while((m = reverseRe.exec(text)) !== null){ add(m[0]); }
+
+  return results;
+}
+
+function stripPerUnitMentions(text, mentions){
+  let clean = text;
+  mentions.forEach(mm => { clean = clean.split(mm).join(' '); });
+  return clean;
+}
+
 function extractInstallments(text){
   const results = [];
   const reForward = /(\d{1,2})\s*(?:x|vezes)\s*(?:sem\s+juros\s*)?(?:de\s*)?R\$\s?(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/gi;
@@ -770,8 +806,18 @@ function analyzeOffer(){
   const urls = extractUrls(text);
   const linkUrl = urls[0] || '';
 
-  const installments = extractInstallments(text);
-  const cleanedText = stripInstallments(text, installments);
+  // Só tenta desambiguar menções de preço por unidade/peça quando existe mais de um valor em R$ no texto
+  // (evita zerar o preço de mensagens que só têm um valor e por acaso mencionam "cada"/"unidade").
+  const rawPriceCount = extractPrices(text).length;
+  let perUnitMentions = [];
+  let workingText = text;
+  if(rawPriceCount >= 2){
+    perUnitMentions = extractPerUnitMentions(text);
+    if(perUnitMentions.length) workingText = stripPerUnitMentions(text, perUnitMentions);
+  }
+
+  const installments = extractInstallments(workingText);
+  const cleanedText = stripInstallments(workingText, installments);
 
   const prices = extractPrices(cleanedText).map(toNumber).filter(n => !isNaN(n));
   let original = '', final = '';
@@ -790,6 +836,8 @@ function analyzeOffer(){
     const i = installments[0];
     const total = (i.n * toNumber(i.value)).toFixed(2).replace('.', ',');
     installmentHtml = `💳 Parcelamento detectado: <strong>${i.n}x de R$ ${i.value}</strong> (≈ R$ ${total} no total). Esse valor da parcela NÃO foi usado como preço final — confira/preencha o valor à vista acima antes de gerar a mensagem.`;
+  } else if(perUnitMentions.length){
+    installmentHtml = `📦 Detectamos uma menção a preço por unidade/peça (<strong>${escapeHtml(perUnitMentions[0])}</strong>) e não usamos esse valor como preço com desconto — confira/preencha os preços acima antes de gerar a mensagem.`;
   }
 
   applyDetection(linkUrl, original, final, couponVal, installmentHtml);
