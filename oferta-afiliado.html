@@ -234,6 +234,7 @@
   <div class="tabs">
     <button class="tab-btn active" id="tabGerador" onclick="switchTab('gerador')">Gerador</button>
     <button class="tab-btn" id="tabHistorico" onclick="switchTab('historico')">Histórico <span class="tab-badge" id="histBadge">0</span></button>
+    <button class="tab-btn" id="tabVitrine" onclick="switchTab('vitrine')">👀 Vitrine</button>
   </div>
 
   <div class="card" id="bookmarkletCard">
@@ -372,6 +373,18 @@
     <div id="histList"></div>
     <input type="file" id="histImgInput" accept="image/*" class="hidden" onchange="onHistImageSelected(this.files[0])">
   </div>
+
+  <div id="view-vitrine" class="hidden">
+    <div class="note" style="margin-bottom:12px;">
+      👀 É exatamente isso que os seus seguidores veem quando abrem a vitrine — atualiza sozinha conforme você publica ou edita produtos.
+    </div>
+    <iframe id="vitrineFrame" src="loja.html" title="Vitrine Rolê com Relikia" style="width:100%; min-height:640px; border:1px solid var(--border); border-radius:var(--radius); background:#000;"></iframe>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="small secondary" onclick="reloadVitrineFrame()">🔄 Atualizar vitrine</button>
+      <a href="loja.html" target="_blank" rel="noopener" class="small secondary" style="flex:1; min-width:120px; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:9px 14px; border-radius:8px; border:1px solid var(--border); color:var(--text); font-size:13px; font-weight:600;">↗ Abrir em nova aba</a>
+    </div>
+  </div>
+
   <div id="histImgToast"></div>
 
 <script>
@@ -445,9 +458,21 @@ function shareVitrineLink(){
 function switchTab(view){
   document.getElementById('view-gerador').classList.toggle('hidden', view !== 'gerador');
   document.getElementById('view-historico').classList.toggle('hidden', view !== 'historico');
+  document.getElementById('view-vitrine').classList.toggle('hidden', view !== 'vitrine');
   document.getElementById('tabGerador').classList.toggle('active', view === 'gerador');
   document.getElementById('tabHistorico').classList.toggle('active', view === 'historico');
+  document.getElementById('tabVitrine').classList.toggle('active', view === 'vitrine');
   if(view === 'historico') renderHistory();
+}
+
+function reloadVitrineFrame(){
+  const frame = document.getElementById('vitrineFrame');
+  if(!frame) return;
+  try{
+    frame.contentWindow.location.reload();
+  }catch(e){
+    frame.src = 'loja.html?t=' + Date.now();
+  }
 }
 
 /* ---------- Captura de imagem ---------- */
