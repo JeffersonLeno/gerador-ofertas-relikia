@@ -620,7 +620,10 @@ function renderHistEntry(e){
     <div class="hist-entry-body">
       ${imgHtml}
       <div class="hist-entry-text">
-        ${e.title ? `<div style="font-weight:700;">${escapeHtml(e.title)}</div>` : ''}
+        <div class="btn-row" style="margin-top:0; margin-bottom:6px;">
+          <input type="text" id="histTitleInput-${e.id}" value="${escapeHtml(e.title || '')}" placeholder="Título do produto (opcional, aparece na vitrine)" maxlength="90" style="flex:1; min-width:160px;">
+          <button class="small secondary" onclick="saveHistTitle('${e.id}')">💾 Salvar título</button>
+        </div>
         ${priceLine}
         <div class="final-box">${escapeHtml(e.message)}</div>
         <div class="link-box">${escapeHtml(e.link)}</div>
@@ -716,6 +719,29 @@ function showHistImgToast(msg){
   toast.classList.add('show');
   clearTimeout(toast._hideTimer);
   toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 2800);
+}
+
+/* ---------- Editar título de um produto já publicado ---------- */
+function saveHistTitle(id){
+  const input = document.getElementById('histTitleInput-' + id);
+  if(!input) return;
+  const newTitle = input.value.trim();
+
+  const list = loadHistory();
+  const idx = list.findIndex(x => x.id === id);
+  if(idx !== -1){
+    list[idx].title = newTitle || null;
+    persistHistory(list);
+    renderHistory();
+  }
+
+  if(window.updateProductTitleInFirestore){
+    window.updateProductTitleInFirestore(id, newTitle || null)
+      .then(() => showHistImgToast('✅ Título atualizado na vitrine!'))
+      .catch(() => showHistImgToast('Título salvo neste aparelho, mas não sincronizou com a vitrine agora.'));
+  } else {
+    showHistImgToast('Título salvo neste aparelho.');
+  }
 }
 
 function exportHistory(){
@@ -1216,6 +1242,16 @@ if('serviceWorker' in navigator){
     const updates = [];
     snap.forEach((docSnap) => {
       updates.push(updateDoc(docSnap.ref, { image: imageDataUrl }));
+    });
+    await Promise.all(updates);
+  };
+
+  window.updateProductTitleInFirestore = async function(entryId, title){
+    const q = query(collection(db, 'products'), where('id', '==', entryId));
+    const snap = await getDocs(q);
+    const updates = [];
+    snap.forEach((docSnap) => {
+      updates.push(updateDoc(docSnap.ref, { title: title || null }));
     });
     await Promise.all(updates);
   };
