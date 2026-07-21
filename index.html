@@ -165,16 +165,19 @@
   </div>
 
   <div class="card" id="bookmarkletCard">
-    <div class="step-header">
+    <div class="step-header" style="cursor:pointer; margin-bottom:0;" onclick="toggleBookmarklet()">
       <div class="step-num">🔖</div>
-      <div class="step-title">Atalho: pegar preço automático (bookmarklet)</div>
+      <div class="step-title" style="flex:1;">Atalho para computador (opcional)</div>
+      <div class="muted" id="bmToggleIcon">mostrar ▾</div>
     </div>
-    <div class="muted" style="margin-bottom:10px;">
-      Arraste o botão abaixo para a barra de favoritos do navegador (não clique nele agora). Depois, quando estiver na página do produto no Mercado Livre ou na Shopee — com preço, desconto e cupom visíveis na tela — clique nesse favorito: ele abre esta ferramenta em uma nova aba já com o link, preço e cupom preenchidos no passo 2.
-    </div>
-    <a href="javascript:(function(){function t(e){return e?e.textContent.trim():&quot;&quot;}var h=location.hostname,o=&quot;&quot;,f=&quot;&quot;,c=&quot;&quot;,u=location.href;if(h.indexOf(&quot;mercadolivre&quot;)>-1||h.indexOf(&quot;mercadolibre&quot;)>-1){var m=function(e){if(!e)return&quot;&quot;;var fr=e.querySelector(&quot;.andes-money-amount__fraction&quot;),ce=e.querySelector(&quot;.andes-money-amount__cents&quot;);return fr?fr.textContent.trim()+&quot;,&quot;+(ce?ce.textContent.trim():&quot;00&quot;):&quot;&quot;};var pb=document.querySelectorAll(&quot;.ui-pdp-price__main-container .andes-money-amount, .ui-pdp-price .andes-money-amount&quot;);if(pb.length>=2){f=m(pb[0]);o=m(pb[1])}else if(pb.length===1){f=m(pb[0])}if(!f){f=m(document.querySelector(&quot;.andes-money-amount&quot;))}var cp=document.querySelector(&quot;[class*=ui-pdp-coupon], [class*=ui-pdp-promotions]&quot;);c=cp?t(cp).slice(0,40):&quot;&quot;}else if(h.indexOf(&quot;shopee&quot;)>-1){var bt=document.body.innerText;var pm=(bt.match(/R\$\s?\d{1,3}(?:\.\d{3})*,\d{2}/g)||[]).map(function(s){return s.replace(/^R\$\s?/,&quot;&quot;)});var up=pm.filter(function(v,i){return pm.indexOf(v)===i});if(up.length>=2){f=up[0];o=up[1]}else if(up.length===1){f=up[0]}var cm=bt.match(/cupom[:\s]*([A-Z0-9]{3,15})/i);c=cm?cm[1]:&quot;&quot;}var p=new URLSearchParams();p.set(&quot;bk&quot;,&quot;1&quot;);p.set(&quot;link&quot;,u);if(o)p.set(&quot;original&quot;,o);if(f)p.set(&quot;final&quot;,f);if(c)p.set(&quot;coupon&quot;,c);window.open(&quot;https://jeffersonleno.github.io/gerador-ofertas-relikia/?&quot;+p.toString(),&quot;_blank&quot;)})();" class="bookmarklet-btn">📌 Gerar Oferta Relikia</a>
-    <div class="muted" style="margin-top:10px; font-size:11.5px;">
-      Funciona melhor no Mercado Livre (seletores de preço mais estáveis). Na Shopee o layout muda com frequência, então às vezes pode não pegar o preço certo — sempre confira antes de gerar a mensagem. Se a barra de favoritos estiver escondida, ative com Ctrl+Shift+B (Chrome) e depois arraste o botão para lá.
+    <div id="bookmarkletBody" class="hidden" style="margin-top:14px;">
+      <div class="muted" style="margin-bottom:10px;">
+        Isso aqui é só para quem também usa o navegador do computador — pelo celular, o jeito mais fácil continua sendo colar o link ou a mensagem no passo 1 abaixo. Se quiser mesmo assim, arraste o botão para a barra de favoritos do navegador (não clique nele agora). Depois, na página do produto no Mercado Livre ou na Shopee, clique nesse favorito para abrir a ferramenta já com o link, preço e cupom preenchidos.
+      </div>
+      <a href="javascript:(function(){function t(e){return e?e.textContent.trim():&quot;&quot;}var h=location.hostname,o=&quot;&quot;,f=&quot;&quot;,c=&quot;&quot;,u=location.href;if(h.indexOf(&quot;mercadolivre&quot;)>-1||h.indexOf(&quot;mercadolibre&quot;)>-1){var m=function(e){if(!e)return&quot;&quot;;var fr=e.querySelector(&quot;.andes-money-amount__fraction&quot;),ce=e.querySelector(&quot;.andes-money-amount__cents&quot;);return fr?fr.textContent.trim()+&quot;,&quot;+(ce?ce.textContent.trim():&quot;00&quot;):&quot;&quot;};var pb=document.querySelectorAll(&quot;.ui-pdp-price__main-container .andes-money-amount, .ui-pdp-price .andes-money-amount&quot;);if(pb.length>=2){f=m(pb[0]);o=m(pb[1])}else if(pb.length===1){f=m(pb[0])}if(!f){f=m(document.querySelector(&quot;.andes-money-amount&quot;))}var cp=document.querySelector(&quot;[class*=ui-pdp-coupon], [class*=ui-pdp-promotions]&quot;);c=cp?t(cp).slice(0,40):&quot;&quot;}else if(h.indexOf(&quot;shopee&quot;)>-1){var bt=document.body.innerText;var pm=(bt.match(/R\$\s?\d{1,3}(?:\.\d{3})*,\d{2}/g)||[]).map(function(s){return s.replace(/^R\$\s?/,&quot;&quot;)});var up=pm.filter(function(v,i){return pm.indexOf(v)===i});if(up.length>=2){f=up[0];o=up[1]}else if(up.length===1){f=up[0]}var cm=bt.match(/cupom[:\s]*([A-Z0-9]{3,15})/i);c=cm?cm[1]:&quot;&quot;}var p=new URLSearchParams();p.set(&quot;bk&quot;,&quot;1&quot;);p.set(&quot;link&quot;,u);if(o)p.set(&quot;original&quot;,o);if(f)p.set(&quot;final&quot;,f);if(c)p.set(&quot;coupon&quot;,c);window.open(&quot;https://jeffersonleno.github.io/gerador-ofertas-relikia/?&quot;+p.toString(),&quot;_blank&quot;)})();" class="bookmarklet-btn">📌 Gerar Oferta Relikia</a>
+      <div class="muted" style="margin-top:10px; font-size:11.5px;">
+        Funciona melhor no Mercado Livre (seletores de preço mais estáveis). Na Shopee o layout muda com frequência, então às vezes pode não pegar o preço certo — sempre confira antes de gerar a mensagem. Se a barra de favoritos estiver escondida, ative com Ctrl+Shift+B (Chrome) e depois arraste o botão para lá.
+      </div>
     </div>
   </div>
 
@@ -221,11 +224,11 @@
     <div class="row">
       <div>
         <label>Preço original (De R$)</label>
-        <input type="text" id="priceOriginal" placeholder="Ex: 199,90">
+        <input type="text" inputmode="decimal" id="priceOriginal" placeholder="Ex: 199,90">
       </div>
       <div>
         <label>Preço com desconto (Por R$)</label>
-        <input type="text" id="priceFinal" placeholder="Ex: 129,90">
+        <input type="text" inputmode="decimal" id="priceFinal" placeholder="Ex: 129,90">
       </div>
       <div>
         <label>Cupom (opcional)</label>
@@ -264,7 +267,8 @@
     </div>
     <div class="final-box" id="finalMessage"></div>
     <div class="btn-row" style="margin-top:10px;">
-      <button class="small" onclick="copyText('finalMessage', this)">Copiar mensagem</button>
+      <button class="small" id="shareBtn" onclick="shareMessage()">📤 Compartilhar no WhatsApp</button>
+      <button class="small secondary" onclick="copyText('finalMessage', this)">Copiar mensagem</button>
       <span class="copied-msg" id="copiedFinal">Copiado! Agora é só colar no grupo.</span>
     </div>
   </div>
@@ -297,6 +301,31 @@ const PORTALS = {
 };
 
 const HISTORY_KEY = 'relikia_historico_v1';
+
+/* ---------- Atalho de computador (recolhido por padrão) ---------- */
+function toggleBookmarklet(){
+  const body = document.getElementById('bookmarkletBody');
+  const icon = document.getElementById('bmToggleIcon');
+  const willShow = body.classList.contains('hidden');
+  body.classList.toggle('hidden');
+  icon.textContent = willShow ? 'ocultar ▴' : 'mostrar ▾';
+}
+
+/* ---------- Compartilhar (Web Share API, ótimo no celular) ---------- */
+function shareMessage(){
+  const text = document.getElementById('finalMessage').textContent;
+  if(navigator.share){
+    navigator.share({text}).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).then(() => {
+      const flash = document.getElementById('copiedFinal');
+      const original = flash.textContent;
+      flash.textContent = 'Este navegador não compartilha direto — mensagem copiada, é só colar no grupo.';
+      flash.classList.add('show');
+      setTimeout(() => { flash.classList.remove('show'); flash.textContent = original; }, 3000);
+    });
+  }
+}
 
 /* ---------- Abas ---------- */
 function switchTab(view){
@@ -435,11 +464,18 @@ function renderHistEntry(e){
       </div>
     </div>
     <div class="btn-row">
+      ${(typeof navigator !== 'undefined' && navigator.share) ? `<button class="small" onclick="shareHistMessage('${e.id}')">📤 Compartilhar</button>` : ''}
       <button class="small secondary" onclick="copyHistField('${e.id}','message', this)">Copiar mensagem</button>
       <button class="small secondary" onclick="copyHistField('${e.id}','link', this)">Copiar link</button>
       <span class="copied-msg">Copiado!</span>
     </div>
   </div>`;
+}
+
+function shareHistMessage(id){
+  const entry = loadHistory().find(x => x.id === id);
+  if(!entry || !navigator.share) return;
+  navigator.share({text: entry.message}).catch(() => {});
 }
 
 function copyHistField(id, field, btn){
@@ -788,6 +824,17 @@ function copyText(elId, btn){
     e.preventDefault();
     zone.classList.remove('drag');
     if(e.dataTransfer.files && e.dataTransfer.files[0]) handleImageFile(e.dataTransfer.files[0]);
+  });
+})();
+
+/* ---------- Analisar automaticamente ao colar (menos toques no celular) ---------- */
+(function initAutoAnalyzeOnPaste(){
+  const box = document.getElementById('rawOffer');
+  if(!box) return;
+  box.addEventListener('paste', () => {
+    setTimeout(() => {
+      if(box.value.trim()) analyzeOffer();
+    }, 60);
   });
 })();
 
