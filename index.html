@@ -60,6 +60,7 @@
   .pill.ml{background:#fff16022; color:#ffe066; border:1px solid #ffe06655;}
   .pill.shopee{background:#ee4d2d22; color:#ff8a65; border:1px solid #ee4d2d55;}
   .pill.outro{background:#f2030322; color:#ff8a8a; border:1px solid #f2030355;}
+  .pill.affiliate-ok{background:#22c55e22; color:#4ade80; border:1px solid #22c55e55; margin-left:6px;}
   .muted{color:var(--muted); font-size:12.5px;}
   .hidden{display:none !important;}
   .link-box{
@@ -227,6 +228,7 @@
       <div class="step-title">Cole aqui o link de afiliado gerado no portal</div>
     </div>
     <input type="text" id="affiliateLink" placeholder="Cole o link de afiliado (ex: mercadolivre.com/sec/... ou s.shopee.com.br/...)">
+    <div class="muted" style="margin-top:4px;">Preenchido automaticamente com o link identificado no passo 1. Se ainda precisar gerar o link de afiliado oficial no portal, substitua aqui antes de gerar a mensagem.</div>
 
     <label>Chamada de atenção (CTA) — vai aparecer em negrito e MAIÚSCULO no topo da mensagem</label>
     <input type="text" id="ctaText" value="Aproveite antes que acabe">
@@ -485,6 +487,18 @@ function detectPlatform(url){
   return 'outro';
 }
 
+function isLikelyAffiliateLink(url, platform){
+  if(!url) return false;
+  const u = url.toLowerCase();
+  if(platform === 'ml'){
+    return u.includes('matt_word=') && u.includes('matt_tool=');
+  }
+  if(platform === 'shopee'){
+    return u.includes('af_id=') || u.includes('utm_source=affiliate') || /[?&](sub_id|subid)=/i.test(u);
+  }
+  return false;
+}
+
 function extractPrices(text){
   const re = /R\$\s?(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/g;
   const found = [];
@@ -550,12 +564,16 @@ function analyzeOffer(){
   const installments = extractInstallments(text);
   const cleanedText = stripInstallments(text, installments);
 
+  const isAffiliate = isLikelyAffiliateLink(detectedLinkUrl, detectedPlatform);
+
   const pillEl = document.getElementById('platformPill');
   const labels = {ml: ['Mercado Livre', 'ml'], shopee: ['Shopee', 'shopee'], outro: ['Plataforma não reconhecida', 'outro']};
   const [label, cls] = labels[detectedPlatform];
-  pillEl.innerHTML = `<span class="pill ${cls}">${label}</span>`;
+  pillEl.innerHTML = `<span class="pill ${cls}">${label}</span>` + (isAffiliate ? ' <span class="pill affiliate-ok">Link de afiliado ✓</span>' : '');
 
   document.getElementById('detectedLink').textContent = detectedLinkUrl || 'Nenhum link encontrado — cole manualmente no passo 3.';
+
+  document.getElementById('affiliateLink').value = detectedLinkUrl || '';
 
   const openBtn = document.getElementById('openPortalBtn');
   openBtn.disabled = detectedPlatform === 'outro';
@@ -564,8 +582,12 @@ function analyzeOffer(){
                         : 'Portal não disponível para este link';
 
   const notes = {
-    ml: 'No Mercado Livre, se você já estiver logado na sua conta de afiliado, o botão/aba de "compartilhar e ganhar" aparece direto em qualquer página de produto — não precisa nem abrir o portal separado, é só entrar no link do produto (ou nesse mesmo link acima) já logado e copiar o link de afiliado por ali.',
-    shopee: 'Na Shopee o fluxo é diferente do Mercado Livre: não existe um botão de afiliado direto na página do produto pelo site/desktop. Pelo PC, abra o "Portal de afiliados" (botão abaixo), cole a URL do produto no campo de link personalizado e gere o link lá. Pelo celular, um atalho mais rápido: abra o produto no app da Shopee → toque em Compartilhar → "Ganhar comissão" — isso gera o link de afiliado direto, sem precisar do portal.',
+    ml: isAffiliate
+      ? '✅ Esse link já parece ser o seu link de afiliado do Mercado Livre (encontramos os parâmetros de rastreamento matt_tool/matt_word). Já deixamos preenchido no passo 3 — é só conferir/preencher o preço e o cupom abaixo (se houver) e gerar a mensagem.'
+      : 'No Mercado Livre, se você já estiver logado na sua conta de afiliado, o botão/aba de "compartilhar e ganhar" aparece direto em qualquer página de produto — não precisa nem abrir o portal separado, é só entrar no link do produto (ou nesse mesmo link acima) já logado e copiar o link de afiliado por ali.',
+    shopee: isAffiliate
+      ? '✅ Esse link já parece ser o seu link de afiliado da Shopee (encontramos parâmetros de rastreamento de afiliado). Já deixamos preenchido no passo 3 — é só conferir/preencher o preço e o cupom abaixo (se houver) e gerar a mensagem.'
+      : 'Na Shopee o fluxo é diferente do Mercado Livre: não existe um botão de afiliado direto na página do produto pelo site/desktop. Pelo PC, abra o "Portal de afiliados" (botão abaixo), cole a URL do produto no campo de link personalizado e gere o link lá. Pelo celular, um atalho mais rápido: abra o produto no app da Shopee → toque em Compartilhar → "Ganhar comissão" — isso gera o link de afiliado direto, sem precisar do portal.',
     outro: 'Não foi possível identificar automaticamente a plataforma deste link. Cole o link do produto no passo abaixo mesmo assim, ou gere o link de afiliado manualmente no portal correspondente e cole o resultado no passo 3.'
   };
   document.getElementById('platformNote').textContent = notes[detectedPlatform] || notes.outro;
