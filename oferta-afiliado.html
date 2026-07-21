@@ -219,6 +219,11 @@
   </div>
   <div class="subtitle">Cole a oferta do grupo → identifique o link e a plataforma → gere o link de afiliado no portal oficial → receba a mensagem pronta para reenviar.</div>
 
+  <div class="btn-row" style="margin-bottom:14px;">
+    <button class="small secondary" id="shareVitrineBtn" onclick="shareVitrineLink()">🔗 Compartilhar vitrine com amigos</button>
+    <span class="copied-msg" id="copiedVitrine">Link copiado! É só colar no WhatsApp/Telegram/Instagram.</span>
+  </div>
+
   <div class="tabs">
     <button class="tab-btn active" id="tabGerador" onclick="switchTab('gerador')">Gerador</button>
     <button class="tab-btn" id="tabHistorico" onclick="switchTab('historico')">Histórico <span class="tab-badge" id="histBadge">0</span></button>
@@ -403,6 +408,24 @@ function shareMessage(){
       flash.textContent = 'Este navegador não compartilha direto — mensagem copiada, é só colar no grupo.';
       flash.classList.add('show');
       setTimeout(() => { flash.classList.remove('show'); flash.textContent = original; }, 3000);
+    });
+  }
+}
+
+function shareVitrineLink(){
+  const url = 'https://jeffersonleno.github.io/gerador-ofertas-relikia/loja.html';
+  const shareData = {
+    title: 'Vitrine de Ofertas — Rolê com Relikia',
+    text: 'Confira as promoções que a gente publica, direto aqui:',
+    url: url
+  };
+  if(navigator.share){
+    navigator.share(shareData).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url).then(() => {
+      const flash = document.getElementById('copiedVitrine');
+      flash.classList.add('show');
+      setTimeout(() => flash.classList.remove('show'), 3000);
     });
   }
 }
