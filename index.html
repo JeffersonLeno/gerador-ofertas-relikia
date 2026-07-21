@@ -251,7 +251,7 @@
       <div class="step-title">Cole aqui o link de afiliado gerado no portal</div>
     </div>
     <input type="text" id="affiliateLink" placeholder="Cole o link de afiliado (ex: mercadolivre.com/sec/... ou s.shopee.com.br/...)">
-    <div class="muted" style="margin-top:4px;">Preenchido automaticamente com o link identificado no passo 1. Se ainda precisar gerar o link de afiliado oficial no portal, substitua aqui antes de gerar a mensagem.</div>
+    <div class="muted" style="margin-top:4px;" id="affiliateLinkHint">Cole aqui o seu link de afiliado gerado no portal (ou no widget do produto).</div>
 
     <label>Chamada de atenção (CTA) — vai aparecer em negrito e MAIÚSCULO no topo da mensagem</label>
     <input type="text" id="ctaText" value="Aproveite antes que acabe">
@@ -634,7 +634,14 @@ function applyDetection(link, originalVal, finalVal, couponVal, installmentHtml)
   pillEl.innerHTML = `<span class="pill ${cls}">${label}</span>` + (isAffiliate ? ' <span class="pill affiliate-ok">Link de afiliado ✓</span>' : '');
 
   document.getElementById('detectedLink').textContent = detectedLinkUrl || 'Nenhum link encontrado — cole manualmente no passo 3.';
-  document.getElementById('affiliateLink').value = detectedLinkUrl || '';
+  // Só pré-preenche o passo 3 quando o link detectado já for confirmadamente um link de afiliado
+  // (senão é o link do produto/de outra pessoa, e o usuário ainda precisa colar o link de afiliado dele).
+  document.getElementById('affiliateLink').value = isAffiliate ? (detectedLinkUrl || '') : '';
+  document.getElementById('affiliateLinkHint').textContent = isAffiliate
+    ? 'Preenchido automaticamente, porque esse link já parece ser o seu link de afiliado. Substitua aqui se não for.'
+    : (detectedLinkUrl
+        ? 'Cole aqui o seu link de afiliado gerado no portal (o link encontrado no passo 1 não foi preenchido aqui porque não é um link de afiliado seu).'
+        : 'Cole aqui o seu link de afiliado gerado no portal (ou no widget do produto).');
 
   const openBtn = document.getElementById('openPortalBtn');
   openBtn.disabled = detectedPlatform === 'outro';
