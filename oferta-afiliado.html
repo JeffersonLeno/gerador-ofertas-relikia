@@ -79,6 +79,13 @@
   }
   .copied-msg{color:var(--green); font-size:12.5px; margin-left:8px; opacity:0; transition:opacity .2s;}
   .copied-msg.show{opacity:1;}
+  #histImgToast{
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
+    background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    padding:10px 16px; border-radius:8px; font-size:13px; opacity:0; pointer-events:none;
+    transition:opacity .25s, transform .25s; z-index:9999; max-width:90vw; text-align:center;
+  }
+  #histImgToast.show{opacity:1; transform:translateX(-50%) translateY(0);}
   .note{
     background:#f2030315; border:1px solid #f2030340; border-radius:8px; padding:10px 12px;
     font-size:12.5px; color:#ff9a9a; margin-top:10px;
@@ -361,7 +368,9 @@
     <input type="text" id="histSearch" placeholder="Buscar por palavra, plataforma ou cupom..." oninput="renderHistory()" style="margin-bottom:14px;">
     <div class="note">O histórico é salvo neste navegador/aparelho. Para levar as publicações para outro dispositivo (PC ↔ celular), use "Exportar backup" aqui e "Importar backup" no outro aparelho.</div>
     <div id="histList"></div>
+    <input type="file" id="histImgInput" accept="image/*" class="hidden" onchange="onHistImageSelected(this.files[0])">
   </div>
+  <div id="histImgToast"></div>
 
 <script>
 let detectedPlatform = 'outro';
@@ -618,6 +627,7 @@ function renderHistEntry(e){
       ${(typeof navigator !== 'undefined' && navigator.share) ? `<button class="small" onclick="shareHistMessage('${e.id}')">📤 Compartilhar</button>` : ''}
       <button class="small secondary" onclick="copyHistField('${e.id}','message', this)">Copiar mensagem</button>
       <button class="small secondary" onclick="copyHistField('${e.id}','link', this)">Copiar link</button>
+      <button class="small secondary" onclick="triggerHistImageChange('${e.id}')">🖼 ${e.image ? 'Trocar imagem' : 'Adicionar imagem'}</button>
       <span class="copied-msg">Copiado!</span>
     </div>
   </div>`;
@@ -645,6 +655,64 @@ function deleteHistoryEntry(id){
   if(!confirm('Excluir esta publicação do histórico?')) return;
   persistHistory(loadHistory().filter(x => x.id !== id));
   renderHistory();
+}
+
+/* ---------- Adicionar/trocar imagem de um produto já publicado ---------- */
+let histImgEditingId = null;
+
+function triggerHistImageChange(id){
+  histImgEditingId = id;
+  document.getElementById('histImgInput').click();
+}
+
+function onHistImageSelected(file){
+  const targetId = histImgEditingId;
+  if(!file || !file.type || !file.type.startsWith('image/') || !targetId) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxDim = 480;
+      let w = img.width, h = img.height;
+      if(w > maxDim || h > maxDim){
+        if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; }
+        else{ w = Math.round(w * maxDim / h); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+
+      const list = loadHistory();
+      const idx = list.findIndex(x => x.id === targetId);
+      if(idx !== -1){
+        list[idx].image = dataUrl;
+        persistHistory(list);
+        renderHistory();
+      }
+
+      if(window.updateProductImageInFirestore){
+        window.updateProductImageInFirestore(targetId, dataUrl)
+          .then(() => showHistImgToast('✅ Imagem atualizada na vitrine!'))
+          .catch(() => showHistImgToast('Imagem salva neste aparelho, mas não sincronizou com a vitrine agora.'));
+      } else {
+        showHistImgToast('Imagem salva neste aparelho.');
+      }
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('histImgInput').value = '';
+  histImgEditingId = null;
+}
+
+function showHistImgToast(msg){
+  const toast = document.getElementById('histImgToast');
+  if(!toast) return;
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 2800);
 }
 
 function exportHistory(){
@@ -1058,7 +1126,7 @@ if('serviceWorker' in navigator){
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCxuG8ikkutYPACSgqsoGgTFOcl2hgSW7M",
@@ -1110,6 +1178,16 @@ if('serviceWorker' in navigator){
 
   window.publishProductToFirestore = async function(entry){
     await addDoc(collection(db, 'products'), entry);
+  };
+
+  window.updateProductImageInFirestore = async function(entryId, imageDataUrl){
+    const q = query(collection(db, 'products'), where('id', '==', entryId));
+    const snap = await getDocs(q);
+    const updates = [];
+    snap.forEach((docSnap) => {
+      updates.push(updateDoc(docSnap.ref, { image: imageDataUrl }));
+    });
+    await Promise.all(updates);
   };
 </script>
 </body>
