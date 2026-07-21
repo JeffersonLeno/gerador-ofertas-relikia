@@ -476,8 +476,22 @@ function importHistory(file){
 }
 
 function extractUrls(text){
-  const matches = text.match(/https?:\/\/[^\s)>\]]+/g) || [];
-  return matches.map(u => u.replace(/[.,;!?]+$/,''));
+  const withScheme = (text.match(/https?:\/\/[^\s)>\]]+/g) || []).map(u => u.replace(/[.,;!?]+$/,''));
+
+  // Também pega links de marketplaces conhecidos colados SEM "http(s)://" na frente
+  // (comum quando o link é copiado direto de um app de compartilhamento/afiliado).
+  const bareDomains = '(?:www\\.)?(?:mercadolivre\\.com(?:\\.br)?|mercadolibre\\.com|produto\\.mercadolivre\\.com\\.br|meli\\.la|meli\\.com|mercadoli\\.re|shopee\\.com\\.br|shope\\.ee|shp\\.ee|s\\.shopee\\.com\\.br)';
+  const bareRe = new RegExp('(?:^|[\\s(<\\[])(' + bareDomains + '\\/[^\\s)>\\]]*)', 'gi');
+  const bareMatches = [];
+  let bm;
+  while((bm = bareRe.exec(text)) !== null){
+    bareMatches.push(bm[1].replace(/[.,;!?]+$/,''));
+  }
+  const normalizedBare = bareMatches
+    .filter(u => !withScheme.some(full => full.includes(u)))
+    .map(u => 'https://' + u);
+
+  return [...withScheme, ...normalizedBare];
 }
 
 function detectPlatform(url){
