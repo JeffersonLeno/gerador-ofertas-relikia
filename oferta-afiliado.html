@@ -888,9 +888,9 @@ function buildMessage(){
   const SEP = '━━━━━━━━━━━━━';
   if(!isNaN(o) && !isNaN(f) && o > f){
     const pct = Math.round((1 - f/o) * 100);
-    priceBlock = `${SEP}\n💰 De ~R$ ${original}~\n✅ Por *R$ ${final}*\n🔻 *${pct}% OFF*\n${SEP}`;
+    priceBlock = `💰 De ~R$ ${original}~\n✅ Por *R$ ${final}*\n🔻 *${pct}% OFF*\n${SEP}`;
   } else if(!isNaN(f)){
-    priceBlock = `${SEP}\n✅ Por apenas *R$ ${final}*\n${SEP}`;
+    priceBlock = `✅ Por apenas *R$ ${final}*\n${SEP}`;
   }
 
   const ctaLine = `⚡ *${ctaRaw.toUpperCase()}* ⚡`;
