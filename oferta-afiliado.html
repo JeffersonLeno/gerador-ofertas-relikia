@@ -520,16 +520,17 @@ function switchTab(view){
     renderHistory();
     loadClickCounts();
   }
+  if(view === 'vitrine'){
+    reloadVitrineFrame();
+  }
 }
 
 function reloadVitrineFrame(){
   const frame = document.getElementById('vitrineFrame');
   if(!frame) return;
-  try{
-    frame.contentWindow.location.reload();
-  }catch(e){
-    frame.src = 'loja.html?t=' + Date.now();
-  }
+  // Sempre força um recarregamento sem cache, trocando a URL com um parâmetro novo —
+  // assim a prévia nunca fica presa numa versão antiga guardada pelo navegador.
+  frame.src = 'loja.html?t=' + Date.now();
 }
 
 /* ---------- Captura de imagem ---------- */
