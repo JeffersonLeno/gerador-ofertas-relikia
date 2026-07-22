@@ -62,8 +62,30 @@
   .filter-chip.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
   .filter-chip:hover{ border-color:var(--accent); }
 
-  #productList{
+  #productList, .date-group-grid{
     display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:14px;
+  }
+  .view-toggle{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+  .view-tab{
+    background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    font-size:13px; font-weight:700; padding:9px 16px; border-radius:999px; cursor:pointer;
+  }
+  .view-tab.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .view-tab:hover{ border-color:var(--accent); }
+  .date-accordion-group{ margin-bottom:20px; }
+  .date-accordion-header{
+    font-size:13.5px; font-weight:700; color:var(--muted); margin-bottom:12px; padding-bottom:6px;
+    border-bottom:1px solid var(--border); cursor:pointer; list-style:none;
+    display:flex; align-items:center; gap:6px;
+  }
+  .date-accordion-header::-webkit-details-marker{ display:none; }
+  .date-accordion-header::before{ content:'▸'; font-size:11px; color:var(--accent); transition:transform .15s; }
+  .date-accordion-group[open] .date-accordion-header::before{ transform:rotate(90deg); }
+  .date-accordion-header:hover{ color:var(--text); }
+  .date-group-grid{ margin-top:10px; }
+  .search-warning{
+    background:#f2030315; border:1px solid #f2030340; border-radius:8px; padding:8px 10px;
+    font-size:11.5px; color:#ff9a9a; line-height:1.4;
   }
   .product-card{
     background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
@@ -106,7 +128,7 @@
     .brand-header img{ width:40px; height:40px; }
     h1{ font-size:17px; }
     .subtitle{ font-size:13px; margin-bottom:16px; }
-    #productList{ grid-template-columns:1fr 1fr; gap:10px; }
+    #productList, .date-group-grid{ grid-template-columns:1fr 1fr; gap:10px; }
     .product-img{ height:110px; }
     .product-info{ padding:10px; gap:6px; }
     .price-new{ font-size:15px; }
@@ -126,7 +148,13 @@
   <div class="subtitle">Todas as promoções publicadas, direto aqui — sem precisar entrar no grupo.</div>
 
   <div class="stats-bar" id="statsBar"></div>
-  <input type="text" id="searchInput" placeholder="Buscar por produto, plataforma ou cupom...">
+
+  <div class="view-toggle" id="viewToggle">
+    <button class="view-tab active" data-view="destaques">🔥 Destaques de hoje</button>
+    <button class="view-tab" data-view="pordata">📅 Por data</button>
+  </div>
+
+  <input type="text" id="searchInput" placeholder="Buscar produto pelo nome (não precisa ser exato)...">
   <div class="filter-chips" id="filterChips">
     <button class="filter-chip active" data-platform="all">Todas</button>
     <button class="filter-chip" data-platform="ml">Mercado Livre</button>
@@ -134,6 +162,7 @@
   </div>
 
   <div id="productList"></div>
+  <div id="byDateContainer" class="hidden"></div>
   <div id="emptyState" class="empty-state hidden">Carregando ofertas...</div>
 </div>
 
@@ -156,11 +185,67 @@
   let allProducts = [];
   let currentFilter = 'all';
   let currentSearch = '';
+  let currentView = 'destaques';
+  const SEARCH_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
   function escapeHtml(str){
     const div = document.createElement('div');
     div.textContent = str == null ? '' : String(str);
     return div.innerHTML;
+  }
+
+  function normalizeText(str){
+    return (str || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  }
+
+  function isSameDay(ts1, ts2){
+    return new Date(ts1).toLocaleDateString('pt-BR') === new Date(ts2).toLocaleDateString('pt-BR');
+  }
+
+  function fuzzyTitleMatch(title, term){
+    const nTitle = normalizeText(title);
+    const nTerm = normalizeText(term);
+    if(!nTerm) return false;
+    if(nTitle.includes(nTerm)) return true;
+    const words = nTerm.split(/\s+/).filter(Boolean);
+    if(!words.length) return false;
+    const matchedWords = words.filter(w => nTitle.includes(w));
+    return matchedWords.length >= Math.ceil(words.length / 2);
+  }
+
+  function platformFilter(list){
+    return currentFilter === 'all' ? list : list.filter(p => p.platform === currentFilter);
+  }
+
+  function getSearchResults(term){
+    const cutoff = Date.now() - SEARCH_WINDOW_MS;
+    const nTerm = normalizeText(term);
+    const recent = allProducts.filter(p => p.ts >= cutoff);
+    const candidates = recent.filter(p => {
+      if(p.title && fuzzyTitleMatch(p.title, term)) return true;
+      return normalizeText(p.message).includes(nTerm) ||
+        normalizeText(p.coupon).includes(nTerm) ||
+        normalizeText(p.link).includes(nTerm);
+    });
+
+    // Deduplica por título: se o mesmo produto foi publicado mais de uma vez
+    // nesses 7 dias, só a publicação mais recente aparece no resultado.
+    const byTitle = new Map();
+    const noTitle = [];
+    candidates.forEach(p => {
+      if(p.title){
+        const key = normalizeText(p.title);
+        const existing = byTitle.get(key);
+        if(!existing || p.ts > existing.ts) byTitle.set(key, p);
+      } else {
+        noTitle.push(p);
+      }
+    });
+
+    const results = platformFilter([...byTitle.values(), ...noTitle]);
+    results.sort((a, b) => b.ts - a.ts);
+    const now = Date.now();
+    return results.map(p => ({ ...p, _notToday: !isSameDay(p.ts, now) }));
   }
 
   function renderStats(list){
@@ -193,6 +278,9 @@
 
     const couponHtml = p.coupon ? `<div class="coupon-row">🏷️ Cupom: <strong>${escapeHtml(p.coupon)}</strong></div>` : '';
     const titleHtml = p.title ? `<div class="product-title">${escapeHtml(p.title)}</div>` : '';
+    const warningHtml = p._notToday
+      ? `<div class="search-warning">⚠️ Publicado em outro dia — os valores e o desconto podem ter mudado. Confira antes de comprar.</div>`
+      : '';
     const imgHtml = p.image
       ? `<img class="product-img" src="${p.image}" alt="${escapeHtml(p.title || '')}">`
       : `<div class="product-img placeholder">Sem imagem</div>`;
@@ -205,6 +293,7 @@
         <div class="product-info">
           <span class="pill ${platformClass}">${label}</span>
           ${titleHtml}
+          ${warningHtml}
           ${priceHtml}
           ${couponHtml}
           <a class="cta-btn" href="${safeLink}" target="_blank" rel="noopener" onclick="window.trackProductClick('${safeDocId}')">Ver oferta →</a>
@@ -212,29 +301,81 @@
       </div>`;
   }
 
+  function renderByDate(){
+    const container = document.getElementById('byDateContainer');
+    const list = platformFilter(allProducts);
+
+    if(!list.length){
+      container.innerHTML = '<div class="empty-state">Nenhuma oferta publicada ainda.</div>';
+      return;
+    }
+
+    const groups = {};
+    const order = [];
+    list.forEach(p => {
+      const key = new Date(p.ts).toLocaleDateString('pt-BR');
+      if(!groups[key]){ groups[key] = []; order.push(key); }
+      groups[key].push(p);
+    });
+
+    const todayKey = new Date().toLocaleDateString('pt-BR');
+
+    container.innerHTML = order.map(key => {
+      const items = groups[key];
+      let label = new Date(items[0].ts).toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+      label = label.charAt(0).toUpperCase() + label.slice(1);
+      const countLabel = `${items.length} ${items.length === 1 ? 'oferta' : 'ofertas'}`;
+      const cardsHtml = `<div class="date-group-grid">${items.map(renderProductCard).join('')}</div>`;
+      const isToday = key === todayKey;
+      return `<details class="date-accordion-group"${isToday ? ' open' : ''}>
+        <summary class="date-accordion-header">${isToday ? 'Hoje · ' : ''}${label} · ${countLabel}</summary>
+        ${cardsHtml}
+      </details>`;
+    }).join('');
+  }
+
   function applyFiltersAndRender(){
     const listEl = document.getElementById('productList');
+    const byDateEl = document.getElementById('byDateContainer');
     const emptyEl = document.getElementById('emptyState');
 
-    let filtered = allProducts;
-    if(currentFilter !== 'all'){
-      filtered = filtered.filter(p => p.platform === currentFilter);
-    }
+    renderStats(allProducts);
+
     if(currentSearch){
-      const term = currentSearch.toLowerCase();
-      filtered = filtered.filter(p =>
-        (p.message || '').toLowerCase().includes(term) ||
-        (p.coupon || '').toLowerCase().includes(term) ||
-        (p.link || '').toLowerCase().includes(term)
-      );
+      byDateEl.classList.add('hidden');
+      listEl.classList.remove('hidden');
+      const results = getSearchResults(currentSearch);
+      if(!results.length){
+        listEl.innerHTML = '';
+        emptyEl.classList.remove('hidden');
+        emptyEl.textContent = 'Nenhuma oferta encontrada para essa busca (procuramos só nas publicações dos últimos 7 dias).';
+        return;
+      }
+      emptyEl.classList.add('hidden');
+      listEl.innerHTML = results.map(renderProductCard).join('');
+      return;
     }
 
-    renderStats(allProducts);
+    if(currentView === 'pordata'){
+      listEl.classList.add('hidden');
+      byDateEl.classList.remove('hidden');
+      emptyEl.classList.add('hidden');
+      renderByDate();
+      return;
+    }
+
+    byDateEl.classList.add('hidden');
+    listEl.classList.remove('hidden');
+    const todayKey = new Date().toLocaleDateString('pt-BR');
+    let filtered = allProducts.filter(p => new Date(p.ts).toLocaleDateString('pt-BR') === todayKey);
+    filtered = platformFilter(filtered);
 
     if(!filtered.length){
       listEl.innerHTML = '';
       emptyEl.classList.remove('hidden');
-      emptyEl.textContent = allProducts.length ? 'Nenhuma oferta encontrada para esse filtro/busca.' : 'Nenhuma oferta publicada ainda. Volte em breve!';
+      emptyEl.textContent = allProducts.length
+        ? 'Nenhuma oferta publicada hoje ainda. Veja "Por data" para conferir dias anteriores.'
+        : 'Nenhuma oferta publicada ainda. Volte em breve!';
       return;
     }
     emptyEl.classList.add('hidden');
@@ -272,6 +413,15 @@
       document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentFilter = btn.dataset.platform;
+      applyFiltersAndRender();
+    });
+  });
+
+  document.querySelectorAll('.view-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentView = btn.dataset.view;
       applyFiltersAndRender();
     });
   });

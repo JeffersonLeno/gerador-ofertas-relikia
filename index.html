@@ -143,6 +143,11 @@
   .hist-toolbar{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
   .hist-date-group{ margin-bottom:24px; }
   .hist-date-header{ font-size:13.5px; font-weight:700; color:var(--muted); margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+  details.hist-date-group summary.hist-date-header{ cursor:pointer; list-style:none; display:flex; align-items:center; gap:6px; }
+  details.hist-date-group summary.hist-date-header::-webkit-details-marker{ display:none; }
+  details.hist-date-group summary.hist-date-header::before{ content:'▸'; font-size:11px; color:var(--accent); transition:transform .15s; }
+  details.hist-date-group[open] summary.hist-date-header::before{ transform:rotate(90deg); }
+  details.hist-date-group summary.hist-date-header:hover{ color:var(--text); }
   .hist-entry{ margin-bottom:12px; }
   .hist-entry-top{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .hist-entry-top .hist-del{ margin-left:auto; background:transparent; border:1px solid var(--border); color:var(--muted); padding:4px 9px; margin-top:0; }
@@ -553,6 +558,26 @@ function saveToHistory(entry){
   }
 }
 
+const EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000;
+
+function cleanupExpiredHistory(){
+  const cutoff = Date.now() - EXPIRATION_MS;
+  const list = loadHistory();
+  const kept = list.filter(e => e.ts >= cutoff);
+  if(kept.length !== list.length){
+    persistHistory(kept);
+    if(document.getElementById('view-historico') && !document.getElementById('view-historico').classList.contains('hidden')){
+      renderHistory();
+    } else {
+      updateHistBadge();
+    }
+  }
+  if(window.deleteExpiredProductsFromFirestore){
+    window.deleteExpiredProductsFromFirestore(cutoff).catch(() => {});
+  }
+}
+window.cleanupExpiredHistory = cleanupExpiredHistory;
+
 function updateHistBadge(){
   const badge = document.getElementById('histBadge');
   if(badge) badge.textContent = loadHistory().length;
@@ -628,15 +653,25 @@ function renderHistory(){
     groups[key].push(entry);
   });
 
+  const todayKey = new Date().toLocaleDateString('pt-BR');
+
   listEl.innerHTML = order.map(key => {
     const entries = groups[key];
     let label = new Date(entries[0].ts).toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
     label = label.charAt(0).toUpperCase() + label.slice(1);
     const entriesHtml = entries.map(renderHistEntry).join('');
-    return `<div class="hist-date-group">
-      <div class="hist-date-header">${label} · ${entries.length} ${entries.length === 1 ? 'publicação' : 'publicações'}</div>
+    const countLabel = `${entries.length} ${entries.length === 1 ? 'publicação' : 'publicações'}`;
+
+    if(key === todayKey){
+      return `<div class="hist-date-group">
+        <div class="hist-date-header">Hoje · ${label} · ${countLabel}</div>
+        ${entriesHtml}
+      </div>`;
+    }
+    return `<details class="hist-date-group">
+      <summary class="hist-date-header">${label} · ${countLabel}</summary>
       ${entriesHtml}
-    </div>`;
+    </details>`;
   }).join('');
 }
 
@@ -1226,7 +1261,7 @@ if('serviceWorker' in navigator){
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-  import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCxuG8ikkutYPACSgqsoGgTFOcl2hgSW7M",
@@ -1249,6 +1284,7 @@ if('serviceWorker' in navigator){
       overlay.classList.add('hidden');
       status.classList.remove('hidden');
       emailLabel.textContent = user.email;
+      if(window.cleanupExpiredHistory) window.cleanupExpiredHistory();
     } else {
       overlay.classList.remove('hidden');
       status.classList.add('hidden');
@@ -1318,6 +1354,17 @@ if('serviceWorker' in navigator){
     });
     await Promise.all(reads);
     return map;
+  };
+
+  window.deleteExpiredProductsFromFirestore = async function(cutoffMs){
+    const q = query(collection(db, 'products'), where('ts', '<', cutoffMs));
+    const snap = await getDocs(q);
+    const deletions = [];
+    snap.forEach((docSnap) => {
+      deletions.push(deleteDoc(docSnap.ref));
+    });
+    await Promise.all(deletions);
+    return deletions.length;
   };
 </script>
 </body>
