@@ -139,7 +139,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { getFirestore, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCxuG8ikkutYPACSgqsoGgTFOcl2hgSW7M",
@@ -197,6 +197,7 @@
       ? `<img class="product-img" src="${p.image}" alt="${escapeHtml(p.title || '')}">`
       : `<div class="product-img placeholder">Sem imagem</div>`;
     const safeLink = escapeHtml(p.link || '#');
+    const safeDocId = escapeHtml(p._docId || '');
 
     return `
       <div class="product-card" data-platform="${platformClass}">
@@ -206,7 +207,7 @@
           ${titleHtml}
           ${priceHtml}
           ${couponHtml}
-          <a class="cta-btn" href="${safeLink}" target="_blank" rel="noopener">Ver oferta →</a>
+          <a class="cta-btn" href="${safeLink}" target="_blank" rel="noopener" onclick="window.trackProductClick('${safeDocId}')">Ver oferta →</a>
         </div>
       </div>`;
   }
@@ -240,9 +241,18 @@
     listEl.innerHTML = filtered.map(renderProductCard).join('');
   }
 
+  window.trackProductClick = async function(docId){
+    if(!docId) return;
+    try{
+      await updateDoc(doc(db, 'products', docId), { clicks: increment(1) });
+    }catch(e){
+      // silencioso: não deve atrapalhar a navegação do visitante mesmo se a contagem falhar
+    }
+  };
+
   const q = query(collection(db, 'products'), orderBy('ts', 'desc'));
   onSnapshot(q, (snapshot) => {
-    allProducts = snapshot.docs.map(doc => doc.data());
+    allProducts = snapshot.docs.map(d => ({ ...d.data(), _docId: d.id }));
     applyFiltersAndRender();
   }, (error) => {
     document.getElementById('emptyState').classList.remove('hidden');

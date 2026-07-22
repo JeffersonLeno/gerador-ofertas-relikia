@@ -455,6 +455,17 @@ function shareVitrineLink(){
 }
 
 /* ---------- Abas ---------- */
+let clickCountsCache = {};
+async function loadClickCounts(){
+  if(!window.fetchAllProductClicks) return;
+  try{
+    clickCountsCache = await window.fetchAllProductClicks();
+    renderHistory();
+  }catch(e){
+    // silencioso: se não conseguir buscar (ex: sem login ainda), só não mostra a contagem
+  }
+}
+
 function switchTab(view){
   document.getElementById('view-gerador').classList.toggle('hidden', view !== 'gerador');
   document.getElementById('view-historico').classList.toggle('hidden', view !== 'historico');
@@ -462,7 +473,10 @@ function switchTab(view){
   document.getElementById('tabGerador').classList.toggle('active', view === 'gerador');
   document.getElementById('tabHistorico').classList.toggle('active', view === 'historico');
   document.getElementById('tabVitrine').classList.toggle('active', view === 'vitrine');
-  if(view === 'historico') renderHistory();
+  if(view === 'historico'){
+    renderHistory();
+    loadClickCounts();
+  }
 }
 
 function reloadVitrineFrame(){
@@ -636,10 +650,15 @@ function renderHistEntry(e){
   const priceLine = (e.original && e.final)
     ? `<div class="muted">De R$ ${escapeHtml(e.original)} → Por R$ ${escapeHtml(e.final)}${e.pct ? ' · ' + e.pct + '% OFF' : ''}</div>`
     : (e.final ? `<div class="muted">Por R$ ${escapeHtml(e.final)}</div>` : '');
+  const clickCount = clickCountsCache[e.id];
+  const clicksHtml = clickCount != null
+    ? `<span class="muted" title="Cliques no botão da vitrine">🖱️ ${clickCount}</span>`
+    : '';
   return `<div class="card hist-entry">
     <div class="hist-entry-top">
       <span class="pill ${cls}">${label}</span>
       <span class="muted">${time}</span>
+      ${clicksHtml}
       <button class="small hist-del" onclick="deleteHistoryEntry('${e.id}')" title="Excluir">🗑 Excluir</button>
     </div>
     <div class="hist-entry-body">
@@ -1279,6 +1298,16 @@ if('serviceWorker' in navigator){
       updates.push(updateDoc(docSnap.ref, { title: title || null }));
     });
     await Promise.all(updates);
+  };
+
+  window.fetchAllProductClicks = async function(){
+    const snap = await getDocs(collection(db, 'products'));
+    const map = {};
+    snap.forEach((docSnap) => {
+      const data = docSnap.data();
+      if(data && data.id) map[data.id] = data.clicks || 0;
+    });
+    return map;
   };
 </script>
 </body>
