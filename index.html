@@ -143,11 +143,15 @@
   .hist-toolbar{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
   .hist-date-group{ margin-bottom:24px; }
   .hist-date-header{ font-size:13.5px; font-weight:700; color:var(--muted); margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
-  details.hist-date-group summary.hist-date-header{ cursor:pointer; list-style:none; display:flex; align-items:center; gap:6px; }
-  details.hist-date-group summary.hist-date-header::-webkit-details-marker{ display:none; }
-  details.hist-date-group summary.hist-date-header::before{ content:'▸'; font-size:11px; color:var(--accent); transition:transform .15s; }
-  details.hist-date-group[open] summary.hist-date-header::before{ transform:rotate(90deg); }
-  details.hist-date-group summary.hist-date-header:hover{ color:var(--text); }
+  .day-circles{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .day-circle{
+    width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:13.5px; font-weight:700; cursor:pointer; background:transparent; border:2px solid var(--text);
+    color:var(--text); flex-shrink:0; transition:transform .1s;
+  }
+  .day-circle:hover{ border-color:var(--accent); transform:translateY(-1px); }
+  .day-circle.day-today{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .day-circle.day-selected{ background:#fff; border-color:#fff; color:#111; }
   .hist-entry{ margin-bottom:12px; }
   .hist-entry-top{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .hist-entry-top .hist-del{ margin-left:auto; background:transparent; border:1px solid var(--border); color:var(--muted); padding:4px 9px; margin-top:0; }
@@ -373,6 +377,7 @@
       </div>
     </div>
     <div class="hist-stats" id="histStats"></div>
+    <div class="day-circles" id="histDayCircles"></div>
     <input type="text" id="histSearch" placeholder="Buscar por palavra, plataforma ou cupom..." oninput="renderHistory()" style="margin-bottom:14px;">
     <div class="note">O histórico é salvo neste navegador/aparelho. Para levar as publicações para outro dispositivo (PC ↔ celular), use "Exportar backup" aqui e "Importar backup" no outro aparelho.</div>
     <div id="histList"></div>
@@ -600,22 +605,63 @@ function computeHistStats(list){
   return {total: list.length, thisMonth, ml: byPlatform.ml, shopee: byPlatform.shopee, outro: byPlatform.outro};
 }
 
+function getLast7Days(){
+  const days = [];
+  for(let i = 6; i >= 0; i--){
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(d);
+  }
+  return days;
+}
+
+let selectedHistDay = null;
+
+function renderDayCircles(){
+  const container = document.getElementById('histDayCircles');
+  if(!container) return;
+  const todayKey = new Date().toLocaleDateString('pt-BR');
+  if(!selectedHistDay) selectedHistDay = todayKey;
+
+  const days = getLast7Days();
+  container.innerHTML = days.map(d => {
+    const key = d.toLocaleDateString('pt-BR');
+    const isToday = key === todayKey;
+    const isSelected = key === selectedHistDay;
+    let cls = 'day-circle';
+    if(isToday) cls += ' day-today';
+    else if(isSelected) cls += ' day-selected';
+    const title = d.toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long'});
+    return `<button type="button" class="${cls}" data-day-key="${key}" title="${title}">${d.getDate()}</button>`;
+  }).join('');
+
+  container.querySelectorAll('.day-circle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedHistDay = btn.dataset.dayKey;
+      renderHistory();
+    });
+  });
+}
+
 function renderHistory(){
   const list = loadHistory();
   updateHistBadge();
 
   const statsEl = document.getElementById('histStats');
   const searchInput = document.getElementById('histSearch');
+  const dayCirclesEl = document.getElementById('histDayCircles');
 
   if(!list.length){
     document.getElementById('histCount').textContent = '0 publicações salvas';
     statsEl.innerHTML = '';
     searchInput.classList.add('hidden');
+    dayCirclesEl.classList.add('hidden');
     document.getElementById('histList').innerHTML = '<div class="hist-empty">Nenhuma publicação salva ainda.<br>Gere e copie uma mensagem no Gerador para começar seu histórico.</div>';
     return;
   }
 
   searchInput.classList.remove('hidden');
+  dayCirclesEl.classList.remove('hidden');
   const stats = computeHistStats(list);
   statsEl.innerHTML = `
     <span class="stat-chip">${stats.total} no total</span>
@@ -624,55 +670,32 @@ function renderHistory(){
     ${stats.shopee ? `<span class="stat-chip shopee">${stats.shopee} Shopee</span>` : ''}
   `;
 
+  renderDayCircles();
+
+  const dayFiltered = list.filter(e => new Date(e.ts).toLocaleDateString('pt-BR') === selectedHistDay);
+
   const term = (searchInput.value || '').trim().toLowerCase();
   const platformNames = {ml: 'mercado livre', shopee: 'shopee', outro: 'outro'};
   const filtered = term
-    ? list.filter(e =>
+    ? dayFiltered.filter(e =>
         (e.message || '').toLowerCase().includes(term) ||
         (e.link || '').toLowerCase().includes(term) ||
         (e.coupon || '').toLowerCase().includes(term) ||
         (platformNames[e.platform] || '').includes(term)
       )
-    : list;
+    : dayFiltered;
 
   const listEl = document.getElementById('histList');
-  document.getElementById('histCount').textContent = term
-    ? filtered.length + (filtered.length === 1 ? ' publicação encontrada' : ' publicações encontradas')
-    : stats.total + (stats.total === 1 ? ' publicação salva' : ' publicações salvas');
+  document.getElementById('histCount').textContent = filtered.length + (filtered.length === 1 ? ' publicação neste dia' : ' publicações neste dia');
 
   if(!filtered.length){
-    listEl.innerHTML = '<div class="hist-empty">Nenhuma publicação encontrada para essa busca.</div>';
+    listEl.innerHTML = term
+      ? '<div class="hist-empty">Nenhuma publicação encontrada para essa busca neste dia.</div>'
+      : '<div class="hist-empty">Nenhuma publicação neste dia.</div>';
     return;
   }
 
-  const groups = {};
-  const order = [];
-  filtered.forEach(entry => {
-    const key = new Date(entry.ts).toLocaleDateString('pt-BR');
-    if(!groups[key]){ groups[key] = []; order.push(key); }
-    groups[key].push(entry);
-  });
-
-  const todayKey = new Date().toLocaleDateString('pt-BR');
-
-  listEl.innerHTML = order.map(key => {
-    const entries = groups[key];
-    let label = new Date(entries[0].ts).toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-    label = label.charAt(0).toUpperCase() + label.slice(1);
-    const entriesHtml = entries.map(renderHistEntry).join('');
-    const countLabel = `${entries.length} ${entries.length === 1 ? 'publicação' : 'publicações'}`;
-
-    if(key === todayKey){
-      return `<div class="hist-date-group">
-        <div class="hist-date-header">Hoje · ${label} · ${countLabel}</div>
-        ${entriesHtml}
-      </div>`;
-    }
-    return `<details class="hist-date-group">
-      <summary class="hist-date-header">${label} · ${countLabel}</summary>
-      ${entriesHtml}
-    </details>`;
-  }).join('');
+  listEl.innerHTML = filtered.map(renderHistEntry).join('');
 }
 
 function renderHistEntry(e){

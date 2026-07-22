@@ -72,17 +72,17 @@
   }
   .view-tab.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
   .view-tab:hover{ border-color:var(--accent); }
-  .date-accordion-group{ margin-bottom:20px; }
-  .date-accordion-header{
-    font-size:13.5px; font-weight:700; color:var(--muted); margin-bottom:12px; padding-bottom:6px;
-    border-bottom:1px solid var(--border); cursor:pointer; list-style:none;
-    display:flex; align-items:center; gap:6px;
-  }
-  .date-accordion-header::-webkit-details-marker{ display:none; }
-  .date-accordion-header::before{ content:'▸'; font-size:11px; color:var(--accent); transition:transform .15s; }
-  .date-accordion-group[open] .date-accordion-header::before{ transform:rotate(90deg); }
-  .date-accordion-header:hover{ color:var(--text); }
   .date-group-grid{ margin-top:10px; }
+  .day-circles{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .day-circle{
+    width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:13.5px; font-weight:700; cursor:pointer; background:transparent; border:2px solid var(--text);
+    color:var(--text); flex-shrink:0; transition:transform .1s;
+  }
+  .day-circle:hover{ border-color:var(--accent); transform:translateY(-1px); }
+  .day-circle.day-today{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .day-circle.day-selected{ background:#fff; border-color:#fff; color:#111; }
+  .day-label{ font-size:13.5px; font-weight:700; color:var(--muted); margin-bottom:12px; }
   .search-warning{
     background:#f2030315; border:1px solid #f2030340; border-radius:8px; padding:8px 10px;
     font-size:11.5px; color:#ff9a9a; line-height:1.4;
@@ -162,7 +162,11 @@
   </div>
 
   <div id="productList"></div>
-  <div id="byDateContainer" class="hidden"></div>
+  <div id="byDateContainer" class="hidden">
+    <div class="day-circles" id="dayCircles"></div>
+    <div class="day-label" id="dayLabel"></div>
+    <div class="date-group-grid" id="dayGrid"></div>
+  </div>
   <div id="emptyState" class="empty-state hidden">Carregando ofertas...</div>
 </div>
 
@@ -301,37 +305,72 @@
       </div>`;
   }
 
+  function getLast7Days(){
+    const days = [];
+    for(let i = 6; i >= 0; i--){
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push(d);
+    }
+    return days;
+  }
+
+  let selectedShopDay = null;
+
+  function renderDayCircles(){
+    const container = document.getElementById('dayCircles');
+    if(!container) return;
+    const todayKey = new Date().toLocaleDateString('pt-BR');
+    if(!selectedShopDay) selectedShopDay = todayKey;
+
+    const days = getLast7Days();
+    container.innerHTML = days.map(d => {
+      const key = d.toLocaleDateString('pt-BR');
+      const isToday = key === todayKey;
+      const isSelected = key === selectedShopDay;
+      let cls = 'day-circle';
+      if(isToday) cls += ' day-today';
+      else if(isSelected) cls += ' day-selected';
+      const title = d.toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long'});
+      return `<button type="button" class="${cls}" data-day-key="${key}" title="${title}">${d.getDate()}</button>`;
+    }).join('');
+
+    container.querySelectorAll('.day-circle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedShopDay = btn.dataset.dayKey;
+        renderByDate();
+      });
+    });
+  }
+
   function renderByDate(){
-    const container = document.getElementById('byDateContainer');
+    const dayGrid = document.getElementById('dayGrid');
+    const dayLabel = document.getElementById('dayLabel');
     const list = platformFilter(allProducts);
 
+    renderDayCircles();
+
     if(!list.length){
-      container.innerHTML = '<div class="empty-state">Nenhuma oferta publicada ainda.</div>';
+      dayLabel.textContent = '';
+      dayGrid.innerHTML = '<div class="empty-state">Nenhuma oferta publicada ainda.</div>';
       return;
     }
 
-    const groups = {};
-    const order = [];
-    list.forEach(p => {
-      const key = new Date(p.ts).toLocaleDateString('pt-BR');
-      if(!groups[key]){ groups[key] = []; order.push(key); }
-      groups[key].push(p);
-    });
-
     const todayKey = new Date().toLocaleDateString('pt-BR');
+    const items = list.filter(p => new Date(p.ts).toLocaleDateString('pt-BR') === selectedShopDay);
 
-    container.innerHTML = order.map(key => {
-      const items = groups[key];
-      let label = new Date(items[0].ts).toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-      label = label.charAt(0).toUpperCase() + label.slice(1);
-      const countLabel = `${items.length} ${items.length === 1 ? 'oferta' : 'ofertas'}`;
-      const cardsHtml = `<div class="date-group-grid">${items.map(renderProductCard).join('')}</div>`;
-      const isToday = key === todayKey;
-      return `<details class="date-accordion-group"${isToday ? ' open' : ''}>
-        <summary class="date-accordion-header">${isToday ? 'Hoje · ' : ''}${label} · ${countLabel}</summary>
-        ${cardsHtml}
-      </details>`;
-    }).join('');
+    let label = new Date().toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    if(items.length){
+      label = new Date(items[0].ts).toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    }
+    label = label.charAt(0).toUpperCase() + label.slice(1);
+    const isToday = selectedShopDay === todayKey;
+    const countLabel = `${items.length} ${items.length === 1 ? 'oferta' : 'ofertas'}`;
+    dayLabel.textContent = `${isToday ? 'Hoje · ' : ''}${label} · ${countLabel}`;
+
+    dayGrid.innerHTML = items.length
+      ? items.map(renderProductCard).join('')
+      : '<div class="empty-state">Nenhuma oferta publicada neste dia.</div>';
   }
 
   function applyFiltersAndRender(){
