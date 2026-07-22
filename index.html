@@ -18,21 +18,32 @@
     --bg:#000000; --panel:#131313; --panel2:#1c1c1c; --border:#333333;
     --text:#ffffff; --muted:#a8a8a8; --accent:#f20303; --accent-dark:#b00202;
     --green:#22c55e; --radius:12px;
+    --glass-fill:rgba(255,255,255,.045); --glass-border:rgba(255,255,255,.10);
   }
   *{box-sizing:border-box;}
+  html, body{ height:100%; }
   body{
     margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:#000000; color:var(--text); padding:24px;
+    background:#000000; color:var(--text); padding:24px; position:relative;
   }
-  .wrap{max-width:760px; margin:0 auto;}
+  body::before{
+    content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background-image:url('social-share-relikia.png');
+    background-repeat:no-repeat; background-position:center 18vh;
+    background-size:min(72vw, 560px);
+    opacity:.045; filter:blur(3px);
+  }
+  .wrap{max-width:760px; margin:0 auto; position:relative; z-index:1;}
   .brand-header{display:flex; align-items:center; gap:14px; margin-bottom:4px;}
   .brand-header img{width:52px; height:52px; object-fit:contain; flex-shrink:0;}
   h1{font-size:22px; margin:0; letter-spacing:.01em;}
   h1 .accent{color:var(--accent);}
   .subtitle{color:var(--muted); font-size:14px; margin:6px 0 24px;}
   .card{
-    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    position:relative; background:rgba(19,19,19,.55); border:1px solid var(--glass-border); border-radius:var(--radius);
     padding:20px; margin-bottom:16px;
+    backdrop-filter:blur(16px) saturate(140%); -webkit-backdrop-filter:blur(16px) saturate(140%);
+    box-shadow:0 8px 30px rgba(0,0,0,.35);
   }
   .step-header{display:flex; align-items:center; gap:10px; margin-bottom:14px;}
   .step-num{
@@ -42,8 +53,9 @@
   .step-title{font-size:15px; font-weight:600;}
   label{display:block; font-size:12.5px; color:var(--muted); margin:10px 0 4px;}
   textarea, input[type=text], input[type=password]{
-    width:100%; background:var(--panel2); border:1px solid var(--border); border-radius:8px;
+    width:100%; background:var(--glass-fill); border:1px solid var(--glass-border); border-radius:8px;
     color:var(--text); padding:10px 12px; font-size:13.5px; font-family:inherit; resize:vertical;
+    backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%);
   }
   textarea:focus, input:focus{outline:none; border-color:var(--accent);}
   textarea{min-height:110px;}
@@ -54,8 +66,11 @@
     font-size:13.5px; font-weight:700; cursor:pointer; margin-top:12px; text-transform:uppercase; letter-spacing:.02em;
   }
   button:hover{background:var(--accent-dark);}
-  button.secondary{background:var(--panel2); border:1px solid var(--border); color:var(--text); text-transform:none; font-weight:600;}
-  button.secondary:hover{background:#242424; border-color:var(--accent);}
+  button.secondary{
+    background:var(--glass-fill); border:1px solid var(--glass-border); color:var(--text); text-transform:none; font-weight:600;
+    backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%);
+  }
+  button.secondary:hover{background:rgba(255,255,255,.08); border-color:var(--accent);}
   button.small{padding:6px 10px; font-size:12px; margin-top:0;}
   button:disabled{opacity:.4; cursor:not-allowed; background:var(--panel2); color:var(--muted);}
   .btn-row{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
@@ -70,20 +85,23 @@
   .muted{color:var(--muted); font-size:12.5px;}
   .hidden{display:none !important;}
   .link-box{
-    background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:10px 12px;
+    background:var(--glass-fill); border:1px solid var(--glass-border); border-radius:8px; padding:10px 12px;
     font-size:12.5px; word-break:break-all; color:#ff9a9a; margin-top:6px;
+    backdrop-filter:blur(12px) saturate(140%); -webkit-backdrop-filter:blur(12px) saturate(140%);
   }
   .final-box{
-    background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:14px;
+    background:var(--glass-fill); border:1px solid var(--glass-border); border-radius:8px; padding:14px;
     white-space:pre-wrap; font-size:14px; line-height:1.55; margin-top:10px;
+    backdrop-filter:blur(12px) saturate(140%); -webkit-backdrop-filter:blur(12px) saturate(140%);
   }
   .copied-msg{color:var(--green); font-size:12.5px; margin-left:8px; opacity:0; transition:opacity .2s;}
   .copied-msg.show{opacity:1;}
   #histImgToast{
     position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
-    background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    background:rgba(28,28,28,.75); border:1px solid var(--glass-border); color:var(--text);
     padding:10px 16px; border-radius:8px; font-size:13px; opacity:0; pointer-events:none;
     transition:opacity .25s, transform .25s; z-index:9999; max-width:90vw; text-align:center;
+    backdrop-filter:blur(16px) saturate(140%); -webkit-backdrop-filter:blur(16px) saturate(140%);
   }
   #histImgToast.show{opacity:1; transform:translateX(-50%) translateY(0);}
   .note{
@@ -146,12 +164,32 @@
   .day-circles{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
   .day-circle{
     width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-size:13.5px; font-weight:700; cursor:pointer; background:transparent; border:2px solid var(--text);
+    font-size:13.5px; font-weight:700; cursor:pointer; background:var(--glass-fill); border:2px solid var(--text);
     color:var(--text); flex-shrink:0; transition:transform .1s;
+    backdrop-filter:blur(10px) saturate(140%); -webkit-backdrop-filter:blur(10px) saturate(140%);
   }
   .day-circle:hover{ border-color:var(--accent); transform:translateY(-1px); }
   .day-circle.day-today{ background:var(--accent); border-color:var(--accent); color:#fff; }
   .day-circle.day-selected{ background:#fff; border-color:#fff; color:#111; }
+  .card.hist-entry{
+    background:transparent; border:none; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none;
+    overflow:hidden; isolation:isolate; margin-bottom:16px;
+  }
+  .card.hist-entry::before{
+    content:''; position:absolute; z-index:-2; left:50%; top:50%;
+    width:250%; height:250%; transform:translate(-50%,-50%) rotate(0deg);
+    background:conic-gradient(from 0deg, transparent 0deg, var(--accent) 35deg, transparent 90deg, transparent 270deg, var(--accent) 325deg, transparent 360deg);
+    animation:spinBorder 5s linear infinite;
+  }
+  .card.hist-entry::after{
+    content:''; position:absolute; z-index:-1; inset:2px; border-radius:calc(var(--radius) - 2px);
+    background:rgba(19,19,19,.62);
+    backdrop-filter:blur(18px) saturate(140%); -webkit-backdrop-filter:blur(18px) saturate(140%);
+  }
+  @keyframes spinBorder{
+    from{ transform:translate(-50%,-50%) rotate(0deg); }
+    to{ transform:translate(-50%,-50%) rotate(360deg); }
+  }
   .hist-entry{ margin-bottom:12px; }
   .hist-entry-top{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .hist-entry-top .hist-del{ margin-left:auto; background:transparent; border:1px solid var(--border); color:var(--muted); padding:4px 9px; margin-top:0; }
@@ -172,16 +210,18 @@
 
   .cta-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   .cta-chip{
-    background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    background:var(--glass-fill); border:1px solid var(--glass-border); color:var(--text);
     font-size:11.5px; font-weight:600; padding:6px 11px; border-radius:999px;
     text-transform:none; letter-spacing:0; margin-top:0; cursor:pointer;
+    backdrop-filter:blur(10px) saturate(140%); -webkit-backdrop-filter:blur(10px) saturate(140%);
   }
-  .cta-chip:hover{ border-color:var(--accent); color:var(--accent); background:var(--panel2); }
+  .cta-chip:hover{ border-color:var(--accent); color:var(--accent); background:var(--glass-fill); }
 
   .hist-stats{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
   .stat-chip{
-    background:var(--panel2); border:1px solid var(--border); color:var(--muted);
+    background:var(--glass-fill); border:1px solid var(--glass-border); color:var(--muted);
     font-size:11.5px; font-weight:700; padding:5px 12px; border-radius:999px;
+    backdrop-filter:blur(10px) saturate(140%); -webkit-backdrop-filter:blur(10px) saturate(140%);
   }
   .stat-chip.ml{ color:#ffe066; border-color:#ffe06655; }
   .stat-chip.shopee{ color:#ff8a65; border-color:#ee4d2d55; }
@@ -190,9 +230,18 @@
     position:fixed; inset:0; background:#000000; z-index:9999;
     display:flex; align-items:center; justify-content:center; padding:20px;
   }
+  .auth-overlay::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background-image:url('social-share-relikia.png');
+    background-repeat:no-repeat; background-position:center;
+    background-size:min(60vw, 420px);
+    opacity:.05; filter:blur(3px);
+  }
   .auth-box{
-    width:100%; max-width:340px; background:var(--panel); border:1px solid var(--border);
+    position:relative; width:100%; max-width:340px; background:rgba(19,19,19,.6); border:1px solid var(--glass-border);
     border-radius:var(--radius); padding:26px 22px;
+    backdrop-filter:blur(18px) saturate(140%); -webkit-backdrop-filter:blur(18px) saturate(140%);
+    box-shadow:0 8px 30px rgba(0,0,0,.45);
   }
   .auth-box h2{ font-size:16px; margin:0 0 4px; }
   .auth-box .muted{ margin-bottom:16px; }
