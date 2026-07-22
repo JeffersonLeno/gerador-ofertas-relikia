@@ -139,7 +139,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCxuG8ikkutYPACSgqsoGgTFOcl2hgSW7M",
@@ -244,7 +244,9 @@
   window.trackProductClick = async function(docId){
     if(!docId) return;
     try{
-      await updateDoc(doc(db, 'products', docId), { clicks: increment(1) });
+      // O contador fica numa subcoleção privada (products/{id}/stats/counter), não no
+      // documento público do produto — assim só quem tem login enxerga esse número.
+      await setDoc(doc(db, 'products', docId, 'stats', 'counter'), { clicks: increment(1) }, { merge: true });
     }catch(e){
       // silencioso: não deve atrapalhar a navegação do visitante mesmo se a contagem falhar
     }

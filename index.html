@@ -1226,7 +1226,7 @@ if('serviceWorker' in navigator){
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-  import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, query, where, getDocs, updateDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCxuG8ikkutYPACSgqsoGgTFOcl2hgSW7M",
@@ -1301,12 +1301,22 @@ if('serviceWorker' in navigator){
   };
 
   window.fetchAllProductClicks = async function(){
+    // O contador de cliques fica numa subcoleção privada (products/{id}/stats/counter),
+    // que só pode ser lida por quem está autenticado — por isso é preciso um getDoc por produto.
     const snap = await getDocs(collection(db, 'products'));
     const map = {};
+    const reads = [];
     snap.forEach((docSnap) => {
       const data = docSnap.data();
-      if(data && data.id) map[data.id] = data.clicks || 0;
+      if(data && data.id){
+        reads.push(
+          getDoc(doc(db, 'products', docSnap.id, 'stats', 'counter'))
+            .then((statSnap) => { map[data.id] = statSnap.exists() ? (statSnap.data().clicks || 0) : 0; })
+            .catch(() => { map[data.id] = 0; })
+        );
+      }
     });
+    await Promise.all(reads);
     return map;
   };
 </script>
