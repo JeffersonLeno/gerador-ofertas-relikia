@@ -359,10 +359,10 @@
     const todayKey = new Date().toLocaleDateString('pt-BR');
     const items = list.filter(p => new Date(p.ts).toLocaleDateString('pt-BR') === selectedShopDay);
 
-    let label = new Date().toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-    if(items.length){
-      label = new Date(items[0].ts).toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-    }
+    const selectedDayObj = getLast7Days().find(d => d.toLocaleDateString('pt-BR') === selectedShopDay) || new Date();
+    let label = items.length
+      ? new Date(items[0].ts).toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'})
+      : selectedDayObj.toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
     label = label.charAt(0).toUpperCase() + label.slice(1);
     const isToday = selectedShopDay === todayKey;
     const countLabel = `${items.length} ${items.length === 1 ? 'oferta' : 'ofertas'}`;
