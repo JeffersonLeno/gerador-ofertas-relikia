@@ -327,11 +327,10 @@
     <label>Plataforma detectada</label>
     <div id="platformPill"></div>
 
-    <label>Link do produto encontrado</label>
-    <div class="link-box" id="detectedLink">—</div>
+    <div class="link-box hidden" id="detectedLink">—</div>
     <div class="btn-row" style="margin-top:8px;">
       <button class="secondary small" onclick="copyText('detectedLink', this)">Copiar link do produto</button>
-      <button class="small" id="openPortalBtn" onclick="openPortal()">Abrir portal de afiliados ↗</button>
+      <button class="small" id="openProductBtn" onclick="openProductLink()">Abrir produto no site ↗</button>
       <span class="copied-msg" id="copiedLink">Copiado!</span>
     </div>
 
@@ -357,7 +356,7 @@
     <div class="note hidden" id="installmentNote"></div>
 
     <div class="note" id="platformNote">
-      Mercado Livre e Shopee só geram o link de afiliado oficial dentro do portal deles (é preciso estar logado na sua conta de afiliado). Clique em "Abrir portal de afiliados", cole o link do produto lá, gere o link e cole o resultado no passo 3 abaixo.
+      Clique em "Abrir produto no site" para ver a página do produto. Gere o link de afiliado normalmente (pelo app, pelo portal ou já logado na página) e cole o resultado no passo 3 abaixo.
     </div>
   </div>
 
@@ -437,10 +436,6 @@ let capturedImageDataUrl = null;
 let currentEntryData = null;
 let currentEntrySaved = false;
 
-const PORTALS = {
-  ml: 'https://www.mercadolivre.com.br/l/afiliados-home',
-  shopee: 'https://affiliate.shopee.com.br/'
-};
 
 const HISTORY_KEY = 'relikia_historico_v1';
 
@@ -1065,11 +1060,9 @@ function applyDetection(link, originalVal, finalVal, couponVal, installmentHtml,
         ? 'Cole aqui o seu link de afiliado gerado no portal (o link encontrado no passo 1 não foi preenchido aqui porque não é um link de afiliado seu).'
         : 'Cole aqui o seu link de afiliado gerado no portal (ou no widget do produto).');
 
-  const openBtn = document.getElementById('openPortalBtn');
-  openBtn.disabled = detectedPlatform === 'outro';
-  openBtn.textContent = detectedPlatform === 'ml' ? 'Abrir portal de afiliados (Mercado Livre) ↗'
-                        : detectedPlatform === 'shopee' ? 'Abrir portal de afiliados (Shopee) ↗'
-                        : 'Portal não disponível para este link';
+  const openBtn = document.getElementById('openProductBtn');
+  openBtn.disabled = !detectedLinkUrl;
+  openBtn.textContent = detectedLinkUrl ? 'Abrir produto no site ↗' : 'Nenhum link para abrir';
 
   const notes = {
     ml: isAffiliate
@@ -1077,7 +1070,7 @@ function applyDetection(link, originalVal, finalVal, couponVal, installmentHtml,
       : 'No Mercado Livre, se você já estiver logado na sua conta de afiliado, o botão/aba de "compartilhar e ganhar" aparece direto em qualquer página de produto — não precisa nem abrir o portal separado, é só entrar no link do produto (ou nesse mesmo link acima) já logado e copiar o link de afiliado por ali.',
     shopee: isAffiliate
       ? '✅ Esse link já parece ser o seu link de afiliado da Shopee (encontramos parâmetros de rastreamento de afiliado). Já deixamos preenchido no passo 3 — é só conferir/preencher o preço e o cupom abaixo (se houver) e gerar a mensagem.'
-      : 'Na Shopee o fluxo é diferente do Mercado Livre: não existe um botão de afiliado direto na página do produto pelo site/desktop. Pelo PC, abra o "Portal de afiliados" (botão abaixo), cole a URL do produto no campo de link personalizado e gere o link lá. Pelo celular, um atalho mais rápido: abra o produto no app da Shopee → toque em Compartilhar → "Ganhar comissão" — isso gera o link de afiliado direto, sem precisar do portal.',
+      : 'Na Shopee o fluxo é diferente do Mercado Livre: não existe um botão de afiliado direto na página do produto pelo site/desktop. Pelo PC, abra o produto no botão acima, depois entre no portal de afiliados da Shopee (affiliate.shopee.com.br) logado, cole a URL do produto lá e gere o link. Pelo celular, um atalho mais rápido: abra o produto no app da Shopee → toque em Compartilhar → "Ganhar comissão" — isso gera o link de afiliado direto, sem precisar do portal.',
     outro: 'Não foi possível identificar automaticamente a plataforma deste link. Cole o link do produto no passo abaixo mesmo assim, ou gere o link de afiliado manualmente no portal correspondente e cole o resultado no passo 3.'
   };
   document.getElementById('platformNote').textContent = notes[detectedPlatform] || notes.outro;
@@ -1197,8 +1190,8 @@ function updateDiscount(){
   }
 }
 
-function openPortal(){
-  if(PORTALS[detectedPlatform]) window.open(PORTALS[detectedPlatform], '_blank');
+function openProductLink(){
+  if(detectedLinkUrl) window.open(detectedLinkUrl, '_blank');
 }
 
 function buildMessage(){
