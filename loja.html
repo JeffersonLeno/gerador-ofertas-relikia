@@ -553,6 +553,12 @@
       OneSignal.Slidedown.promptPush({ force: true });
     });
   }
+  /* Este script roda como type="module", então declarações de função ficam
+     no escopo do módulo, não em window. Os atributos onclick inline no HTML
+     só enxergam funções globais — por isso expomos explicitamente aqui. */
+  window.dismissNotifyBar = dismissNotifyBar;
+  window.dismissIosBar = dismissIosBar;
+  window.activateNotifications = activateNotifications;
   (function initNotifyBanners(){
     if(isIosDevice() && !isStandalonePwa()){
       if(localStorage.getItem('relikia_ios_banner_dismissed') !== '1'){
